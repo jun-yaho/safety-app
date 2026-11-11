@@ -846,6 +846,7 @@ window.SITE = {
   .nm-st-tab b { margin-left:5px; font-weight:900; color:var(--text); }
   .nm-st-tab.on { background:var(--yellow); border-color:var(--yellow); color:#fff; }
   .nm-st-tab.on b { color:#fff; }
+  .nm-st-tab.stop.on { background:var(--red); border-color:var(--red); }
   #nm-plan-info div { margin-bottom:4px; }
   #nm-plan-info b { display:inline-block; min-width:62px; color:var(--text-muted); font-weight:700; }
   .escape-map-item { margin-top: 10px; cursor: zoom-in; }
@@ -1524,6 +1525,21 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
 
     <div class="form-group">
+      <label class="form-label">조치부서 <span style="color:var(--text-muted);font-weight:400;">(선택)</span></label>
+      <div class="select-wrap">
+        <select class="form-select" id="stop-request-dept" data-site-dept="1">
+          <option value="">모름 — 확인 후 지정</option>
+        </select>
+      </div>
+      <div class="nm-form-hint">조치할 부서를 알면 골라 주세요. 관리감독자가 확인한 뒤 확정합니다.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">조치방법 <span style="color:var(--text-muted);font-weight:400;">(선택)</span></label>
+      <textarea class="form-textarea" id="stop-method" style="height:80px;" placeholder="필요한 조치를 적어 주세요. 예) 아웃트리거 설치 후 작업, 가스농도 측정 후 재개"></textarea>
+    </div>
+
+    <div class="form-group">
       <label class="form-label">사진 첨부 <span style="color:var(--text-muted);font-weight:400;">(선택)</span></label>
       <div class="photo-upload-area" style="border-color:var(--red);background:var(--red-light);" onclick="document.getElementById('stop-photo-input').click()">
         <input type="file" id="stop-photo-input" accept="image/*" multiple style="display:none" onchange="handleStopPhotos(this)">
@@ -1549,6 +1565,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <button class="filter-btn" onclick="applyStopFilter()">조회</button>
       <button class="filter-reset" onclick="resetStopFilter()">✕</button>
     </div>
+    <div class="nm-status-tabs" id="stop-status-tabs"></div>
     <div class="report-list" id="stop-my-list">
       <div class="report-empty"><div class="report-empty-icon">📭</div>접수된 신고가 없습니다</div>
     </div>
@@ -1705,6 +1722,16 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="toggle-btn" onclick="selectNmImprove(this)" data-value="개선예정">개선예정</div>
         <div class="toggle-btn" onclick="selectNmImprove(this)" data-value="도움필요">도움필요 (안전팀과 현장 검토)</div>
       </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">조치부서 <span style="color:var(--text-muted);font-weight:400;">(선택)</span></label>
+      <div class="select-wrap">
+        <select class="form-select" id="nearmiss-request-dept" data-site-dept="1">
+          <option value="">모름 — 확인 후 지정</option>
+        </select>
+      </div>
+      <div class="nm-form-hint">개선할 부서를 알면 골라 주세요. 안전팀·관리감독자가 확인한 뒤 확정합니다.</div>
     </div>
 
     <!-- 제거된 필드들의 hidden input (저장 시 빈값) -->
@@ -2123,6 +2150,10 @@ document.addEventListener('DOMContentLoaded', function(){
         <textarea class="form-textarea" id="stop-edit-content" style="height:90px;"></textarea>
       </div>
       <div class="form-group">
+        <label class="form-label">조치방법</label>
+        <textarea class="form-textarea" id="stop-edit-method" style="height:70px;"></textarea>
+      </div>
+      <div class="form-group">
         <label class="form-label">신고 첨부사진</label>
         <div class="photo-upload-area" style="border-color:#e8201a;background:#fff5f5;" onclick="event.stopPropagation();document.getElementById('stop-edit-photo-input').click()">
           <input type="file" id="stop-edit-photo-input" accept="image/*" multiple style="display:none" onchange="handleStopEditPhotos(this)">
@@ -2149,6 +2180,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="risk-modal-body" style="overflow-y:auto;flex:1;">
       <input type="hidden" id="stop-action-docid">
       <input type="hidden" id="stop-action-idx">
+      <div id="stop-action-info" style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:14px;"></div>
 
       <div class="form-group">
         <label class="form-label">조치일 <span style="color:var(--red)">*</span></label>
@@ -2562,9 +2594,12 @@ document.addEventListener('DOMContentLoaded', function(){
           개선조치 없이 종결 (2등급 이하 — 교육·공유로 관리)
         </label>
         <div id="detail-no-assign-box" style="margin-top:10px;background:#f8fafc;border:1.5px dashed #93c5fd;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;">
-          <div>🤖 <b>AI 예상 조치부서: <span id="detail-ai-dept" style="color:#dc2626;"></span></b></div>
+          <label class="form-label" style="margin-bottom:6px;">조치부서 <span id="detail-dept-src"></span></label>
+          <div class="select-wrap" style="margin-bottom:6px;">
+            <select class="form-select" id="detail-assign-dept" data-site-dept="1"></select>
+          </div>
           <div id="detail-ai-dept-reason" style="color:var(--text-muted);"></div>
-          <div style="color:var(--text-muted);margin-top:4px;">승인하면 이 부서로 미리 배정되어 '진행예정'이 됩니다. 틀리면 관리감독자가 조치부서를 수정하고, 예정일은 배정된 팀의 관리감독자가 입력합니다.</div>
+          <div style="color:var(--text-muted);margin-top:4px;">맞으면 그대로 승인하세요. 이 부서로 배정되어 '진행예정'이 되고, 예정일은 배정된 팀의 관리감독자가 입력합니다.</div>
         </div>
       </div>
       <div class="form-group">
@@ -2691,6 +2726,32 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div>
 </div>
+<!-- ══ MODAL: 작업중지 담당부서 수정 ══ -->
+<div class="risk-modal-overlay" id="stop-assign-modal" onclick="closeStopAssignModal()">
+  <div class="risk-modal" onclick="event.stopPropagation()">
+    <div class="risk-modal-header">
+      <div class="risk-modal-title">📌 작업중지 담당부서 수정</div>
+      <button class="risk-modal-close" onclick="closeStopAssignModal()">✕</button>
+    </div>
+    <div class="risk-modal-body">
+      <input type="hidden" id="stop-assign-idx">
+      <input type="hidden" id="stop-assign-docid">
+      <div class="form-group">
+        <label class="form-label">담당부서 <span style="color:var(--red)">*</span></label>
+        <div class="select-wrap">
+          <select class="form-select" id="stop-assign-select" data-site-dept="1">
+            <option value="">부서를 선택하세요</option>
+          </select>
+        </div>
+      </div>
+      <div id="stop-assign-current" style="font-size:12px;color:var(--text-muted);margin:-4px 0 12px;line-height:1.6;"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px;">담당부서의 관리감독자가 조치일·조치결과·작업재개 여부를 입력합니다.</div>
+      <button class="btn-submit btn-nearmiss" onclick="saveStopAssign()">💾 저장</button>
+      <button class="btn-cancel-login" onclick="closeStopAssignModal()">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL: 조치계획 검토·착수 (관리감독자) ══ -->
 <div class="risk-modal-overlay" id="nm-plan-modal" onclick="closeNmPlanModal()">
   <div class="risk-modal" onclick="event.stopPropagation()">
@@ -3295,6 +3356,8 @@ function submitStopWithName() {
 function submitStop(name, phone) {
   const area    = document.getElementById('stop-area').value.trim();
   const content = document.getElementById('stop-content').value.trim();
+  const requestedDept = (document.getElementById('stop-request-dept')||{}).value||'';
+  const actionMethod = ((document.getElementById('stop-method')||{}).value||'').trim();
   if (!content) { showToast('⚠ 신고내용을 입력해 주세요', 'var(--red-border)'); return; }
 
   function compressPhotos(photos) {
@@ -3324,6 +3387,7 @@ function submitStop(name, phone) {
         date: dateStr,
         time: d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),
         area, content,
+        requestedDept, actionMethod,
         name: name || '',
         phone: phone || '',
         photos: photoUrls
@@ -3335,6 +3399,7 @@ function submitStop(name, phone) {
       }
       document.getElementById('stop-content').value='';
       document.getElementById('stop-area').value='';
+      ['stop-request-dept','stop-method'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
       stopUploadedPhotos=[]; renderStopPhotos();
       navHistory=['page-home'];
       document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
@@ -3381,6 +3446,7 @@ function submitNearmiss() {
   const improvement   = document.getElementById('nearmiss-improvement').value.trim();
   const improveEl     = document.querySelector('#nearmiss-improve-status .toggle-btn.active');
   const improveStatus = improveEl ? improveEl.dataset.value : '';
+  const requestedDept = (document.getElementById('nearmiss-request-dept')||{}).value||'';
   const deptRequired  = isGS && !dept;
   const compRequired  = !isGS && !companyName;
   const miss = [];
@@ -3424,7 +3490,7 @@ function submitNearmiss() {
         content,
         status: '검토중',
         name, date:'', area:(loc + (locDetail ? ' ' + locDetail : '')), areaMain:loc, areaDetail:locDetail, type:'',
-        reportType, improvement, improveStatus,
+        reportType, improvement, improveStatus, requestedDept,
         unsafe:'-', freqVal:'', sevVal:'', score:null, action:'-',
         photos: photoUrls
       };
@@ -3435,7 +3501,7 @@ function submitNearmiss() {
       }
       document.getElementById('nearmiss-content').value='';
       document.getElementById('nearmiss-name').value='';
-      ['nearmiss-loc','nearmiss-loc-detail','nearmiss-report-type','nearmiss-improvement'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      ['nearmiss-loc','nearmiss-loc-detail','nearmiss-report-type','nearmiss-improvement','nearmiss-request-dept'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
       document.querySelectorAll('#nearmiss-improve-status .toggle-btn').forEach(b=>b.classList.remove('active'));
       uploadedPhotos=[]; renderPhotos();
       document.querySelectorAll('#nearmiss-company-type .toggle-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
@@ -3548,33 +3614,87 @@ function switchPageTab(page, tab) {
 }
 
 // ── 작업중지 신고현황 렌더 ──
-function renderMyStopReports() { renderMyStopReportsData(stopReports); }
+function renderMyStopReports() { if (document.getElementById('stop-filter-from')) applyStopFilter(); else renderMyStopReportsData(stopReports); }
 
+// 작업중지 담당부서: 지정된 부서가 없으면 신고 내용으로 AI가 예상
+function stopDept(r){
+  if (r && r.assignedDept) return { dept: r.assignedDept, ai: false, src: '', reason: r.assignReason || '' };
+  const sg = nmDeptSuggest(r || {});
+  return { dept: sg.dept, ai: sg.src === 'AI', src: sg.src, reason: sg.reason };
+}
+// 작업중지 처리상태: 조치대기 → 조치완료(미재개) / 작업재개
+const STOP_STATUS_LIST=['조치대기','조치완료','작업재개'];
+const STOP_STATUS_STYLE={'조치대기':['#4b5563','#f3f4f6','#d1d5db'],'조치완료':['#00a854','#f0fff7','rgba(0,168,84,0.4)'],'작업재개':['#2563eb','#eff6ff','rgba(37,99,235,0.35)']};
+function stopStatus(r){ if(!r||!r.stopActionDate) return '조치대기'; return r.stopActionResume==='yes'?'작업재개':'조치완료'; }
+function stopStatusBadge(st){ const c=STOP_STATUS_STYLE[st]; return '<span class="assign-badge" style="background:'+c[1]+';color:'+c[0]+';border:1.5px solid '+c[2]+';font-weight:800;">'+st+'</span>'; }
+let stopStatusFilter='전체';
+function setStopStatusFilter(st){ stopStatusFilter=st; applyStopFilter(); }
+function renderStopStatusTabs(list){
+  const el=document.getElementById('stop-status-tabs'); if(!el) return;
+  const counts={'전체':list.length}; STOP_STATUS_LIST.forEach(s=>counts[s]=0); list.forEach(r=>counts[stopStatus(r)]++);
+  el.innerHTML=['전체'].concat(STOP_STATUS_LIST).map(s=>'<button type="button" class="nm-st-tab stop'+(s===stopStatusFilter?' on':'')+'" onclick="setStopStatusFilter(\''+s+'\')">'+s+'<b>'+counts[s]+'</b></button>').join('');
+}
 function renderMyStopReportsData(data) {
   const el=document.getElementById('stop-my-list');
   if(!el) return;
-  if(!data||data.length===0){el.innerHTML='<div class="report-empty"><div class="report-empty-icon">📭</div>접수된 신고가 없습니다</div>';return;}
+  renderStopStatusTabs(data||[]);
+  if(stopStatusFilter!=='전체') data=(data||[]).filter(r=>stopStatus(r)===stopStatusFilter);
+  if(!data||data.length===0){el.innerHTML='<div class="report-empty"><div class="report-empty-icon">📭</div>'+(stopStatusFilter==='전체'?'접수된 신고가 없습니다':stopStatusFilter+' 상태의 신고가 없습니다')+'</div>';return;}
   const isAdmin=currentRole==='관리자';
   const isSafetyAdmin=isAdmin&&currentUserRole==='안전팀';
-  el.innerHTML=data.map((r,idx)=>`
+  el.innerHTML=data.map(r=>{
+    const idx=stopReports.indexOf(r);   // 필터와 관계없이 원본 목록 위치로 연결
+    const sd=stopDept(r);
+    const isMyDept=isAdmin&&!!currentUserDept&&sd.dept===currentUserDept;
+    return `
     <div class="report-card report-card-clickable" onclick="openStopDetail(${idx})">
       <div class="report-card-header" style="flex-wrap:wrap;row-gap:6px;">
         <span class="report-card-date" style="font-size:14px;font-weight:900;color:var(--text);">${r.date||''}</span>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          ${isSafetyAdmin?`<button class="assign-btn" style="border-color:#9ca3af;background:#f3f4f6;color:#6b7280;" onclick="event.stopPropagation();openStopEditModal(${idx})">신고내용수정</button>`:''}
+          ${isAdmin?`<button class="assign-btn" style="border-color:#9ca3af;background:#f3f4f6;color:#6b7280;" onclick="event.stopPropagation();openStopEditModal(${idx})">신고내용수정</button>`:''}
           ${isSafetyAdmin&&r.name?`<button class="assign-btn" style="border-color:#9ca3af;background:#f3f4f6;color:#6b7280;" onclick="event.stopPropagation();openStopPersonalModal(${idx})">인적사항 보기</button>`:''}
-          ${isSafetyAdmin&&!r.stopActionDate?`<button class="assign-btn" style="border-color:var(--red);background:#fff5f5;color:var(--red);" onclick="event.stopPropagation();openStopActionModal(${idx})">조치입력</button>`:''}
+          ${isAdmin&&!r.stopActionDate?`<button class="assign-btn" onclick="event.stopPropagation();openStopAssignModal(${idx})">담당부서 수정</button>`:''}
+          ${isMyDept&&!r.stopActionDate?`<button class="assign-btn" style="border-color:var(--red);background:#fff5f5;color:var(--red);font-weight:800;" onclick="event.stopPropagation();openStopActionModal(${idx})">조치입력</button>`:''}
+          ${isMyDept&&r.stopActionDate?`<button class="assign-btn" style="border-color:#9ca3af;background:#f3f4f6;color:#6b7280;" onclick="event.stopPropagation();openStopActionModal(${idx})">조치수정</button>`:''}
           ${isSafetyAdmin?`<button class="report-del-btn" onclick="event.stopPropagation();deleteReport('stopReports','${r.docId}','stop')">🗑</button>`:''}
           <span style="font-size:18px;color:var(--text-muted);">›</span>
         </div>
       </div>
       <div class="report-row"><span class="report-key">작업장소</span><span class="report-val">${r.area||'-'}</span></div>
       <div class="report-row"><span class="report-key">신고내용</span><span class="report-val">${r.content||'-'}</span></div>
+      ${r.actionMethod?`<div class="report-row"><span class="report-key">조치방법</span><span class="report-val">${nmEsc(r.actionMethod)}</span></div>`:''}
       <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-        ${r.stopActionDate?`<span class="assign-badge assign-badge-set">조치완료</span>`:''}
-        ${r.stopActionResume==='yes'?`<span class="assign-badge" style="background:#f0f4ff;color:#2563eb;border:1px solid rgba(37,99,235,0.3);">작업재개</span>`:r.stopActionResume==='no'?`<span class="assign-badge" style="background:#fff5f5;color:var(--red);border:1px solid rgba(232,32,26,0.3);">미재개</span>`:''}
+        ${stopStatusBadge(stopStatus(r))}
+        <span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">담당 ${nmEsc(sd.dept||'-')}${deptSrcTag(sd.src)}</span>
       </div>
-    </div>`).join('');
+    </div>`;}).join('');
+}
+
+// ── 작업중지 담당부서 수정 (관리감독자 누구나, 조치 전까지) ──
+function openStopAssignModal(idx){
+  const r=stopReports[idx]; if(!r) return;
+  const sd=stopDept(r);
+  document.getElementById('stop-assign-idx').value=idx;
+  document.getElementById('stop-assign-docid').value=r.docId||'';
+  document.getElementById('stop-assign-select').value=sd.dept||'';
+  document.getElementById('stop-assign-current').innerHTML='현재: <b>'+nmEsc(sd.dept||'-')+'</b>'+(sd.src?' ('+(sd.src==='AI'?'<span style="color:#dc2626;font-weight:800;">AI 예상</span>':'<span style="color:#2563eb;font-weight:800;">신고자 지정</span>')+')':'')+(sd.reason&&sd.src!=='신고자'?'<br>'+nmEsc(sd.reason):'');
+  document.getElementById('stop-assign-modal').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function closeStopAssignModal(){ document.getElementById('stop-assign-modal').classList.remove('active'); document.body.style.overflow=''; }
+function saveStopAssign(){
+  const idx=parseInt(document.getElementById('stop-assign-idx').value);
+  const docId=document.getElementById('stop-assign-docid').value;
+  const dept=document.getElementById('stop-assign-select').value;
+  if(!dept){showToast('⚠ 담당부서를 선택해 주세요','var(--red-border)');return;}
+  const r=stopReports[idx]||{}; const sd=stopDept(r);
+  if(dept===sd.dept&&!sd.src){closeStopAssignModal();showToast('변경 사항이 없습니다');return;}
+  const upd={assignedDept:dept,assignedByAI:false,assignSource:'관리감독자',assignedBy:currentUserDept||'',assignedAt:Date.now(),
+    assignReason:(currentUserDept||'관리감독자')+(dept===sd.dept?' 확인':' 수정')+' (이전: '+(sd.dept||'-')+(sd.src?' '+sd.src:'')+')'};
+  if(!window.__db||!docId){Object.assign(r,upd);closeStopAssignModal();renderMyStopReports();showToast('🔄 담당부서가 저장되었습니다');return;}
+  window.__db.collection('stopReports').doc(docId).update(upd)
+    .then(()=>{closeStopAssignModal();switchPageTab('stop','history');showToast('🔄 담당부서가 저장되었습니다');})
+    .catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)'));
 }
 
 function openStopPersonalModal(idx) {
@@ -3600,6 +3720,10 @@ function openStopDetail(idx) {
       ${r.dept?`<tr><th>부서</th><td>${r.dept}</td></tr>`:''}
       <tr><th>작업장소</th><td>${r.area||'-'}</td></tr>
       <tr><th>신고내용</th><td>${r.content||'-'}</td></tr>
+      <tr><th>담당부서</th><td>${(()=>{const sd=stopDept(r);return nmEsc(sd.dept||'-')+deptSrcTag(sd.src)+(sd.reason&&sd.src!=='신고자'?`<div style="font-size:11px;color:var(--text-muted);">${nmEsc(sd.reason)}</div>`:'');})()}</td></tr>
+      ${r.requestedDept?`<tr><th>신고자 지정<br>조치부서</th><td>${nmEsc(r.requestedDept)}</td></tr>`:''}
+      <tr><th>조치방법</th><td>${r.actionMethod?nmEsc(r.actionMethod):'-'}</td></tr>
+      <tr><th>처리상태</th><td>${stopStatusBadge(stopStatus(r))}</td></tr>
     </tbody></table>
     ${r.photos&&r.photos.length>0?`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">첨부사진</div><div class="report-photos">${r.photos.map(p=>`<img src="${p}" class="report-photo-thumb" onclick="viewPhoto('${p}')">`).join('')}</div></div>`:''}`;
 
@@ -3609,6 +3733,7 @@ function openStopDetail(idx) {
       <tr><th>조치일</th><td>${r.stopActionDate||'-'}</td></tr>
       <tr><th>조치결과</th><td>${r.stopActionResult||'-'}</td></tr>
       <tr><th>작업재개여부</th><td>${resumeLabel}</td></tr>
+      <tr><th>조치 입력</th><td>${r.stopActionBy?nmEsc(r.stopActionBy):'-'}</td></tr>
     </tbody></table>
     ${r.stopActionPhotos&&r.stopActionPhotos.length>0?`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">조치사진</div><div class="report-photos">${r.stopActionPhotos.map(p=>`<img src="${p}" class="report-photo-thumb" onclick="viewPhoto('${p}')">`).join('')}</div></div>`:''}`;
 
@@ -3632,7 +3757,11 @@ let stopActionPhotos=[];
 
 function openStopActionModal(idx) {
   const r=stopReports[idx]; if(!r) return;
+  const sd=stopDept(r);
+  if(!currentUserDept||sd.dept!==currentUserDept){showToast('⚠ 담당부서('+(sd.dept||'-')+')의 관리감독자만 조치를 입력할 수 있습니다','var(--red-border)');return;}
   document.getElementById('stop-action-docid').value=r.docId||'';
+  const ai=document.getElementById('stop-action-info');
+  if(ai) ai.innerHTML='<div><b style="color:var(--text-muted);">담당부서</b> '+nmEsc(sd.dept||'-')+deptSrcTag(sd.src)+'</div><div><b style="color:var(--text-muted);">신고내용</b> '+nmEsc(r.content||'-')+'</div><div><b style="color:var(--text-muted);">조치방법</b> '+nmEsc(r.actionMethod||'-')+'</div>';
   document.getElementById('stop-action-idx').value=idx;
   document.getElementById('stop-action-date').value=r.stopActionDate||'';
   document.getElementById('stop-action-result').value=r.stopActionResult||'';
@@ -3677,7 +3806,9 @@ function saveStopAction() {
   if(!resume){showToast('⚠ 작업재개 여부를 선택해 주세요','var(--red-border)');return;}
   compressToBase64(stopActionPhotos.slice(), 800, 0.7).then(compressed => {
     uploadPhotosToStorage(compressed, 'stop_action').then(photoUrls => {
-    const upd={stopActionDate:date,stopActionResult:result,stopActionResume:resume,stopActionPhotos:photoUrls,stopActionUpdatedAt:Date.now()};
+    const sd=stopDept(stopReports[idx]||{});
+    const upd={stopActionDate:date,stopActionResult:result,stopActionResume:resume,stopActionPhotos:photoUrls,stopActionUpdatedAt:Date.now(),
+      stopActionBy:currentUserDept||'',assignedDept:sd.dept,assignedByAI:!!sd.ai,assignSource:sd.src||(stopReports[idx]||{}).assignSource||'',assignReason:sd.reason||''};
     if(!window.__db||!docId){if(stopReports[idx])Object.assign(stopReports[idx],upd);closeStopActionModal();renderMyStopReports();showToast('✅ 조치내용이 저장되었습니다');return;}
     window.__db.collection('stopReports').doc(docId).update(upd).then(()=>{closeStopActionModal();switchPageTab('stop','history');showToast('✅ 조치내용이 저장되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)'));
     });
@@ -3695,6 +3826,7 @@ function openStopEditModal(idxArg) {
   document.getElementById('stop-edit-idx').value=idx;
   document.getElementById('stop-edit-area').value=r.area||'';
   document.getElementById('stop-edit-content').value=r.content||'';
+  document.getElementById('stop-edit-method').value=r.actionMethod||'';
   stopEditPhotos=(r.photos||[]).map(p=>({src:p}));
   renderStopEditPhotos();
   closeStopDetail();
@@ -3711,7 +3843,7 @@ async function saveStopEdit(){
   const docId=document.getElementById('stop-edit-docid').value;
   function compList(photos){return Promise.all(photos.map(p=>new Promise(resolve=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const M=400;let w=img.width,h=img.height;if(w>M){h=Math.round(h*M/w);w=M;}if(h>M){w=Math.round(w*M/h);h=M;}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',0.4));};img.onerror=()=>resolve(null);if(isFsPhotoRef(p.src)){resolve(p.src);return;}img.src=p.src;})));}
   const photos=(await compList(stopEditPhotos)).filter(p=>p);
-  const upd={area:document.getElementById('stop-edit-area').value.trim(),content:document.getElementById('stop-edit-content').value.trim(),photos};
+  const upd={area:document.getElementById('stop-edit-area').value.trim(),content:document.getElementById('stop-edit-content').value.trim(),actionMethod:document.getElementById('stop-edit-method').value.trim(),photos,editedBy:currentUserDept||'',editedAt:Date.now()};
   if(!window.__db||!docId){if(stopReports[idx])Object.assign(stopReports[idx],upd);closeStopEditModal();renderMyStopReports();showToast('✅ 수정되었습니다');return;}
   window.__db.collection('stopReports').doc(docId).update(upd).then(()=>{closeStopEditModal();switchPageTab('stop','history');showToast('✅ 수정되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)'));
 }
@@ -3724,7 +3856,7 @@ function applyStopFilter(){
   const filtered=stopReports.filter(r=>matchesDateFilter(r.date,from,to));
   renderMyStopReportsData(filtered);
 }
-function resetStopFilter(){document.getElementById('stop-filter-from').value='';document.getElementById('stop-filter-to').value='';renderMyStopReportsData(stopReports);}
+function resetStopFilter(){document.getElementById('stop-filter-from').value='';document.getElementById('stop-filter-to').value='';stopStatusFilter='전체';renderMyStopReportsData(stopReports);}
 
 // ── 아차사고 신고현황 렌더 ──
 function renderMyNearmissReports(){ if(document.getElementById('nearmiss-filter-from')) applyNearmissFilter(); else renderMyNearmissReportsData(nearmissReports);}
@@ -3772,7 +3904,8 @@ function renderMyNearmissReportsData(data){
         ${nmStatusBadge(st)}
         ${r.improveStatus&&st==='검토중'?`<span class="assign-badge" style="background:${r.improveStatus==='도움필요'?'#fff0f0':'#fff'};color:${r.improveStatus==='도움필요'?'var(--red)':'var(--text-muted)'};border:1.5px solid ${r.improveStatus==='도움필요'?'rgba(232,32,26,0.35)':'var(--border)'};font-weight:700;">신고자: ${r.improveStatus==='도움필요'?'도움필요 (현장 검토)':r.improveStatus}</span>`:''}
         ${nmGradeBadge(r)}
-        ${r.assignedDept&&st!=='검토중'?`<span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">${r.assignedDept}${r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">AI</span>':''}</span>`:''}
+        ${r.assignedDept&&st!=='검토중'?`<span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">${r.assignedDept}${deptSrcTag(nmAssignSrc(r))}</span>`:''}
+        ${st==='검토중'&&r.requestedDept?`<span class="assign-badge" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);">조치부서(신고) ${nmEsc(r.requestedDept)}</span>`:''}
         ${st==='진행예정'&&!r.dueDate?`<span class="assign-badge" style="background:#fff7ed;color:#ea580c;border:1.5px solid rgba(234,88,12,0.35);">예정일 미입력</span>`:''}
         ${r.dueDate&&(st==='진행예정'||st==='진행중')?`<span class="assign-badge" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);">예정 ${r.changedDueDate||r.dueDate}</span>`:''}
       </div>
@@ -3957,6 +4090,18 @@ function assessNearmissRisk(r){
   }};
 }
 
+// 조치부서 제안: 신고자가 고른 부서 → 없으면 AI 예상
+function nmDeptSuggest(r){
+  if (r && r.requestedDept) return { dept: r.requestedDept, src: '신고자', reason: '신고자 지정' };
+  var p = nmPredictDept(r || {}); return { dept: p.dept, src: 'AI', reason: 'AI: ' + p.reason };
+}
+function deptSrcTag(src){
+  if (src === 'AI') return ' <span style="color:#dc2626;font-weight:800;">AI</span>';
+  if (src === '신고자') return ' <span style="color:#2563eb;font-weight:800;">신고자</span>';
+  return '';
+}
+function nmAssignSrc(r){ return r.assignSource || (r.assignedByAI ? 'AI' : ''); }
+
 // 조치부서 AI 예상: SITE.deptKeywords 단어 일치 수가 가장 많은 부서 → 없으면 신고자 부서 → 없으면 설비팀
 function nmPredictDept(r){
   var text = [r.reportType, r.content, r.area, r.improvement, r.extra].filter(Boolean).join(' ');
@@ -4020,7 +4165,7 @@ function openNmPlanModal(idx){
   document.getElementById('nm-plan-docid').value = r.docId || '';
   var g = nmGrade(r.score, r.sevVal);
   document.getElementById('nm-plan-info').innerHTML =
-    '<div><b>조치부서</b> ' + nmEsc(r.assignedDept || '-') + (r.assignedByAI ? ' <span style="color:#dc2626;font-weight:800;">(AI 예상)</span>' : '') + '</div>' +
+    '<div><b>조치부서</b> ' + nmEsc(r.assignedDept || '-') + deptSrcTag(nmAssignSrc(r)) + '</div>' +
     '<div><b>위험성</b> ' + (g ? (r.score + '점 · ' + g.grade + '등급 ' + g.label + ' — ' + g.action) : '-') + '</div>' +
     '<div><b>신고내용</b> ' + nmEsc(r.content || '-') + '</div>';
   var g5 = nmGrade(r.score, r.sevVal);
@@ -4121,7 +4266,8 @@ function openNearmissDetail(idx){
     <table class="detail-table"><tbody>
       <tr><th>진행상태</th><td>${nmStatusBadge(nmStatus(r))}</td></tr>
       ${r.approvedAt?`<tr><th>승인일</th><td>${new Date(r.approvedAt).toLocaleDateString('ko-KR')}</td></tr>`:''}
-      <tr><th>조치부서</th><td>${r.assignedDept||'-'}${r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">(AI 예상)</span>':''}${r.assignReason?`<div style="font-size:11px;color:var(--text-muted);">${nmEsc(r.assignReason)}</div>`:''}</td></tr>
+      ${r.requestedDept?`<tr><th>조치부서<br>(신고자 지정)</th><td>${nmEsc(r.requestedDept)}</td></tr>`:''}
+      <tr><th>조치부서</th><td>${r.assignedDept||'-'}${deptSrcTag(nmAssignSrc(r))}${r.assignReason?`<div style="font-size:11px;color:var(--text-muted);">${nmEsc(r.assignReason)}</div>`:''}</td></tr>
       <tr><th>조치 예정일</th><td>${r.originalDueDate||r.dueDate||'-'}</td></tr>
       ${r.dueChangeReason ? `<tr><th>조치 예정일<br>(변경)</th><td>${r.changedDueDate||'-'}</td></tr>` : ''}
       ${r.dueChangeReason ? `<tr><th>변경 사유</th><td>${r.dueChangeReason}</td></tr>` : ''}
@@ -4153,7 +4299,7 @@ function openAssignModal(idx){
   document.getElementById('assign-docid').value=r.docId||'';
   document.getElementById('assign-dept-select').value=r.assignedDept||'';
   const ac=document.getElementById('assign-current');
-  if(ac)ac.innerHTML='현재: <b>'+nmEsc(r.assignedDept||'-')+'</b>'+(r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">(AI 예상)</span>':'')+(r.assignReason?'<br>'+nmEsc(r.assignReason):'');
+  if(ac)ac.innerHTML='현재: <b>'+nmEsc(r.assignedDept||'-')+'</b>'+deptSrcTag(nmAssignSrc(r))+(r.requestedDept?'<br>신고자 지정: '+nmEsc(r.requestedDept):'')+(r.assignReason?'<br>'+nmEsc(r.assignReason):'');
   const due=document.getElementById('assign-due-date');
   if(due)due.value=r.dueDate||'';
   document.getElementById('assign-modal').classList.add('active');
@@ -4169,7 +4315,7 @@ function saveAssign(){
   const cur=nearmissReports[idx]||{};
   if(dept===cur.assignedDept){closeAssignModal();showToast('변경 사항이 없습니다');return;}
   const isReassign=true;
-  const upd={assignedDept:dept,assignedByAI:false,assignReason:(currentUserDept||'관리감독자')+' 수정 (이전: '+(cur.assignedDept||'-')+(cur.assignedByAI?' AI':'')+')',assignedBy:currentUserDept,assignedAt:Date.now(),status:'진행예정',dueDate:'',originalDueDate:'',changedDueDate:'',dueChangeReason:'',actionPlan:'',startedAt:null,startedBy:''};
+  const upd={assignedDept:dept,assignedByAI:false,assignSource:'관리감독자',assignReason:(currentUserDept||'관리감독자')+' 수정 (이전: '+(cur.assignedDept||'-')+(nmAssignSrc(cur)?' '+nmAssignSrc(cur):'')+')',assignedBy:currentUserDept,assignedAt:Date.now(),status:'진행예정',dueDate:'',originalDueDate:'',changedDueDate:'',dueChangeReason:'',actionPlan:'',startedAt:null,startedBy:''};
   if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeAssignModal();renderMyNearmissReports();showToast('🔄 조치부서가 수정되었습니다');return;}
   window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeAssignModal();switchPageTab('nearmiss','history');showToast('🔄 조치부서가 수정되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)'));
 }
@@ -4343,9 +4489,10 @@ function openNearmissDetailInputModal(idx){
   document.getElementById('detail-action-no-content').value=av==='no'?(r.actionDetail&&r.action==='no'?r.actionDetail:(r.improveStatus==='도움필요'?'신고자 도움 요청 — 안전팀과 현장 검토 필요':(r.improveStatus==='개선예정'&&r.improvement?'개선 예정: '+r.improvement:''))):'';
   detailActionPhotos=(av==='yes'&&r.actionPhotos?r.actionPhotos:[]).map(p=>({src:p}));
   renderDetailActionPhotos();
-  const pd=nmPredictDept(r);
-  document.getElementById('detail-ai-dept').textContent=pd.dept||'-';
-  document.getElementById('detail-ai-dept-reason').textContent='근거: '+pd.reason;
+  const sg=nmDeptSuggest(r), ai=nmPredictDept(r);
+  document.getElementById('detail-assign-dept').value=sg.dept||'';
+  document.getElementById('detail-dept-src').innerHTML=sg.src==='신고자'?'<span style="color:#2563eb;font-weight:800;">(신고자 지정)</span>':'<span style="color:#dc2626;font-weight:800;">(AI 추천)</span>';
+  document.getElementById('detail-ai-dept-reason').textContent=sg.src==='신고자'?('AI 추천: '+ai.dept+' — '+ai.reason):('근거: '+ai.reason);
   document.getElementById('detail-no-close').checked=false;onNmCloseToggle();
   renderNmAutoHint(idx);
   document.getElementById('nearmiss-detail-input-modal').classList.add('active');
@@ -4437,8 +4584,11 @@ function saveNearmissDetailInput(){
   } else if(closeNoAction){
     finish({...base, status:'조치완료', actionCompleted:true, actionDate:new Date(Date.now()+9*3600e3).toISOString().slice(0,10), actionResult:'개선조치 없이 종결 — '+(grd?grd.action:'교육·공유로 관리')+' (승인자 판단)', actionUpdatedAt:Date.now()});
   } else {
-    const pd=nmPredictDept(nearmissReports[idx]||{});
-    finish({...base, status:'진행예정', assignedDept:pd.dept, assignedByAI:true, assignReason:'AI: '+pd.reason, assignedBy:'AI', assignedAt:Date.now(), dueDate:'', originalDueDate:'', actionPlan:'', startedAt:null, actionCompleted:false});
+    const rr=nearmissReports[idx]||{}, sg=nmDeptSuggest(rr), ai=nmPredictDept(rr);
+    const sel=document.getElementById('detail-assign-dept').value||sg.dept;
+    const src=(rr.requestedDept&&sel===rr.requestedDept)?'신고자':((!rr.requestedDept&&sel===ai.dept)?'AI':'안전팀');
+    const why=src==='신고자'?'신고자 지정 → 안전팀 확인':src==='AI'?('AI: '+ai.reason):('안전팀 지정 (신고자: '+(rr.requestedDept||'-')+' / AI: '+ai.dept+')');
+    finish({...base, status:'진행예정', assignedDept:sel, assignedByAI:src==='AI', assignSource:src, assignReason:why, assignedBy:currentUserDept||'', assignedAt:Date.now(), dueDate:'', originalDueDate:'', actionPlan:'', startedAt:null, actionCompleted:false});
   }
 }
 
@@ -4606,14 +4756,14 @@ async function exportStopExcel(){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('작업중지신고');
 
-  const headers = ['접수일','시간','부서/업체명','작성자','장소','위험요인','신고내용','조치일','작업재개여부','조치결과','신고사진','조치사진'];
+  const headers = ['접수일','시간','처리상태','부서/업체명','작성자','장소','위험요인','신고내용','조치방법','담당부서','담당부서 구분','조치일','작업재개여부','조치결과','조치 입력 부서','신고사진','조치사진'];
   ws.addRow(headers);
   ws.getRow(1).font = { bold:true };
   ws.getRow(1).alignment = { vertical:'middle', horizontal:'center', wrapText:true };
   const PHOTO_COL_WIDTH = 52;
   ws.columns = headers.map(h=>({
     width: (h==='신고사진'||h==='조치사진') ? PHOTO_COL_WIDTH
-         : (h==='신고내용'||h==='조치결과') ? 26
+         : (h==='신고내용'||h==='조치결과'||h==='조치방법') ? 26
          : 14
   }));
 
@@ -4643,8 +4793,9 @@ async function exportStopExcel(){
   for (const r of stopReports){
     const who = r.companyName || r.dept || r.company || '';
     const row = ws.addRow([
-      r.date||'', r.time||'', who, r.name||'', r.area||'', r.risk||'',
-      r.content||'', r.stopActionDate||'', r.stopActionResume||'', r.stopActionResult||'',
+      r.date||'', r.time||'', stopStatus(r), who, r.name||'', r.area||'', r.risk||'',
+      r.content||'', r.actionMethod||'', stopDept(r).dept||'', (()=>{const sd=stopDept(r);return sd.src==='AI'?'AI 예상':sd.src==='신고자'?'신고자 지정 (미확인)':(r.assignReason||'관리감독자 지정');})(),
+      r.stopActionDate||'', r.stopActionResume==='yes'?'재개':(r.stopActionResume==='no'?'미재개':(r.stopActionResume||'')), r.stopActionResult||'', r.stopActionBy||'',
       '', ''
     ]);
     row.height = 56;
@@ -4684,7 +4835,7 @@ async function exportNearmissExcel(){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('아차사고신고');
 
-  const headers = ['접수일','진행상태','소속구분','부서/업체명','작성자','발생일','공정(위치)','아차사고 유형(신고)','신고내용','개선대책(신고)','개선유무(신고)','위험요소(유형)','고위험 요인','불안전요인','빈도','빈도 근거','강도','강도 근거','위험성점수','위험성등급','필수조치(3등급↑)','조치기준','산정구분','AI 산정','빠진 정보','조치부서','조치부서 구분','조치예정일','조치방법','착수일','조치완료일','조치결과','신고사진','조치사진'];
+  const headers = ['접수일','진행상태','소속구분','부서/업체명','작성자','발생일','공정(위치)','아차사고 유형(신고)','신고내용','개선대책(신고)','개선유무(신고)','조치부서(신고)','위험요소(유형)','고위험 요인','불안전요인','빈도','빈도 근거','강도','강도 근거','위험성점수','위험성등급','필수조치(3등급↑)','조치기준','산정구분','AI 산정','빠진 정보','조치부서','조치부서 구분','조치예정일','조치방법','착수일','조치완료일','조치결과','신고사진','조치사진'];
   ws.addRow(headers);
   ws.getRow(1).font = { bold:true };
   ws.getRow(1).alignment = { vertical:'middle', horizontal:'center', wrapText:true };
@@ -4725,13 +4876,13 @@ async function exportNearmissExcel(){
     const ra = assessNearmissRisk(r), f = ra.final, au = ra.auto;
     const row = ws.addRow([
       r.submitDate||'', nmStatus(r), r.companyType||'', (r.companyName||r.dept||''),
-      r.name||'', r.date||'', r.area||'', r.reportType||'', r.content||'', r.improvement||'', r.improveStatus||'',
+      r.name||'', r.date||'', r.area||'', r.reportType||'', r.content||'', r.improvement||'', r.improveStatus||'', r.requestedDept||'',
       f.hazard_type, (f.hazard_factors||[]).join(', ') || '-', (r.unsafe&&r.unsafe!=='-')?r.unsafe:'',
       f.frequency, f.frequency_reason, f.severity, f.severity_reason,
       f.risk_score, f.grade+'등급 '+f.risk_level, f.grade>=NM_REQUIRED_GRADE?'Y':'N', f.action + (f.due?(' (기한: '+f.due+')'):''),
       f.source, `빈도${au.frequency}×강도${au.severity}=${au.risk_score} (${au.grade}등급) / ${au.hazard_type}`,
       (f.missing_info||[]).join(', '),
-      r.assignedDept||'', r.assignedDept?(r.assignedByAI?'AI 예상':(r.assignReason||'관리감독자 지정')):'', r.changedDueDate||r.dueDate||'', r.actionPlan||'',
+      r.assignedDept||'', r.assignedDept?(nmAssignSrc(r)==='AI'?'AI 예상':nmAssignSrc(r)==='신고자'?'신고자 지정 (안전팀 확인)':(r.assignReason||'관리감독자 지정')):(r.requestedDept?'신고자 지정 (승인 전)':''), r.changedDueDate||r.dueDate||'', r.actionPlan||'',
       r.startedAt?new Date(r.startedAt).toLocaleDateString('ko-KR'):'', r.actionDate||'', r.actionResult||'', '', ''
     ]);
     const gc = row.getCell(headers.indexOf('위험성등급')+1);
