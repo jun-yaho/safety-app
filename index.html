@@ -20,7 +20,7 @@ window.SITE = {
   logo: 'logo.png',
 
   // 부서 목록 (신고·조치부서 지정·관리자 계정 신청에 공통 사용) — '안전팀'은 반드시 포함
-  departments: ['안전팀', '운영지원팀', '고객지원팀', '설비팀', '환경팀', '공무팀'],
+  departments: ['안전팀', '환경팀', '설비팀', '공무팀', '고객지원팀', '운영지원팀', '발전효율팀'],
 
   // 메인화면 하단 안전팀 연락처
   safetyPhone: '054-712-0374',   // 화면 표시용
@@ -62,6 +62,7 @@ window.SITE = {
     '설비팀':     ['플랜지','개스킷','가스켓','밸브','펌프','배관','그레이팅','보일러','HRSG','터빈','발전기','변압기','정비','누설','누유','커플링','벨트','회전체','모터','전기','배전','차단기','케이블','계측','증기','급수','설비'],
     '환경팀':     ['약품','가성소다','염산','황산','암모니아','폐수','수처리','탈질','배출','대기','오염','폐기물','화학','유해물질','분진'],
     '공무팀':     ['공사','건축','건물','비계','도장','지붕','도로','구조물','철골','토목','굴착','용접','크레인','협력업체 작업'],
+    '발전효율팀': ['효율','성능','연소','출력','발전량','열소비율','운전조건','운전 조건','부하','성능시험'],
     '고객지원팀': ['열수송관','열배관','지역난방','고객','검침','계량기','사용자 시설','공급관'],
     '운영지원팀': ['사무실','주차장','식당','차량','출입','경비','청소','계단','복도','화장실','휴게실','창고'],
     '안전팀':     ['안전시설','보호구','소화기','소방','비상구','대피로']
@@ -834,6 +835,12 @@ window.SITE = {
 
 
   /* ── ESCAPE MAP MODAL ── */
+  .nm-loc-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .nm-loc-grid .form-hint, .nm-form-hint { font-size:11px; color:var(--text-muted); margin-top:4px; line-height:1.4; }
+  @media (max-width:340px){ .nm-loc-grid { grid-template-columns:1fr; } }
+  .nm-improve-group .toggle-btn { flex:1 1 auto; text-align:center; }
+  #nm-reporter-info { background:#fffbeb; border:1.5px solid rgba(232,149,0,0.35); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.6; margin-bottom:14px; }
+  #nm-reporter-info b { display:inline-block; min-width:64px; color:var(--text-muted); font-weight:700; }
   .nm-status-tabs { display:flex; gap:6px; overflow-x:auto; padding:2px 0 10px; -webkit-overflow-scrolling:touch; }
   .nm-st-tab { flex:0 0 auto; border:1.5px solid var(--border); background:#fff; color:var(--text-muted); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   .nm-st-tab b { margin-left:5px; font-weight:900; color:var(--text); }
@@ -1654,21 +1661,12 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
 
     <div class="form-group">
-      <label class="form-label">내용 <span style="color:var(--red)">*</span></label>
-      <textarea class="form-textarea" id="nearmiss-content" placeholder="어떤 상황이었는지 자세히 적어주세요."></textarea>
+      <label class="form-label">아차사고 공정(위치) <span style="color:var(--red)">*</span></label>
+      <div class="nm-loc-grid">
+        <div><input type="text" class="form-input" id="nearmiss-loc" placeholder="예: 보일러 3호기"><div class="form-hint">위치</div></div>
+        <div><input type="text" class="form-input" id="nearmiss-loc-detail" placeholder="예: 3층 그레이팅"><div class="form-hint">위치 상세</div></div>
+      </div>
     </div>
-
-    <!-- 제거된 필드들의 hidden input (저장 시 빈값) -->
-    <input type="hidden" id="nearmiss-datetime" value="">
-    <input type="hidden" id="nearmiss-area" value="">
-    <input type="hidden" id="nearmiss-type" value="">
-    <input type="hidden" id="risk-freq" value="">
-    <input type="hidden" id="risk-sev" value="">
-    <input type="hidden" id="risk-docno" value="">
-    <input type="hidden" id="nearmiss-unsafe-val" value="">
-    <input type="hidden" id="action-yes-content" value="">
-    <input type="hidden" id="action-no-content" value="">
-    <input type="hidden" id="action-extra" value="">
 
     <div class="form-group">
       <label class="form-label">사진 첨부 <span style="color:var(--text-muted);font-weight:400;">(선택)</span></label>
@@ -1682,6 +1680,42 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="photo-preview-grid" id="photo-preview-grid"></div>
       </div>
     </div>
+
+
+    <div class="form-group">
+      <label class="form-label">아차사고 유형 <span style="color:var(--red)">*</span></label>
+      <input type="text" class="form-input" id="nearmiss-report-type" placeholder="넘어짐, 끼임, 화재, 화학사고 등">
+      <div class="nm-form-hint">예) A 이유로 넘어질 뻔함, B 이유로 옷이 말려들어갈 뻔함</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">내용 <span style="color:var(--red)">*</span></label>
+      <textarea class="form-textarea" id="nearmiss-content" placeholder="어떤 상황이었는지 자세히 적어주세요."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">개선 대책</label>
+      <input type="text" class="form-input" id="nearmiss-improvement" placeholder="계단 설치, TM 발행, 교육 실시 등">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">개선 유무 <span style="color:var(--red)">*</span></label>
+      <div class="toggle-group nm-improve-group" id="nearmiss-improve-status">
+        <div class="toggle-btn" onclick="selectNmImprove(this)" data-value="개선완료">개선완료</div>
+        <div class="toggle-btn" onclick="selectNmImprove(this)" data-value="개선예정">개선예정</div>
+        <div class="toggle-btn" onclick="selectNmImprove(this)" data-value="도움필요">도움필요 (안전팀과 현장 검토)</div>
+      </div>
+    </div>
+
+    <!-- 제거된 필드들의 hidden input (저장 시 빈값) -->
+    <input type="hidden" id="nearmiss-datetime" value="">
+    <input type="hidden" id="risk-freq" value="">
+    <input type="hidden" id="risk-sev" value="">
+    <input type="hidden" id="risk-docno" value="">
+    <input type="hidden" id="nearmiss-unsafe-val" value="">
+    <input type="hidden" id="action-yes-content" value="">
+    <input type="hidden" id="action-no-content" value="">
+    <input type="hidden" id="action-extra" value="">
 
     <button class="btn-submit btn-nearmiss" onclick="submitNearmiss()">⛑️ 신고서 제출하기</button>
   </div>
@@ -2429,6 +2463,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <input type="hidden" id="detail-input-docid">
 
       <input type="hidden" id="detail-input-name">
+      <div id="nm-reporter-info"></div>
       <div class="form-group">
         <label class="form-label">발생일자 <span style="color:var(--red)">*</span></label>
         <input type="date" class="form-input" id="detail-input-date">
@@ -3330,6 +3365,8 @@ function selectCompanyType(el, value) {
   }
 }
 
+function selectNmImprove(el){ document.querySelectorAll('#nearmiss-improve-status .toggle-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+
 function submitNearmiss() {
   const companyTypeEl = document.querySelector('#nearmiss-company-type .toggle-btn.active');
   const companyType   = companyTypeEl ? companyTypeEl.dataset.value : '';
@@ -3338,11 +3375,23 @@ function submitNearmiss() {
   const dept          = document.getElementById('nearmiss-dept') ? document.getElementById('nearmiss-dept').value : '';
   const name          = document.getElementById('nearmiss-name').value.trim();
   const content       = document.getElementById('nearmiss-content').value.trim();
+  const loc           = document.getElementById('nearmiss-loc').value.trim();
+  const locDetail     = document.getElementById('nearmiss-loc-detail').value.trim();
+  const reportType    = document.getElementById('nearmiss-report-type').value.trim();
+  const improvement   = document.getElementById('nearmiss-improvement').value.trim();
+  const improveEl     = document.querySelector('#nearmiss-improve-status .toggle-btn.active');
+  const improveStatus = improveEl ? improveEl.dataset.value : '';
   const deptRequired  = isGS && !dept;
   const compRequired  = !isGS && !companyName;
-  if (!name || !content || deptRequired || compRequired) {
-    showToast('⚠ 모든 항목을 입력해 주세요', 'var(--red-border)'); return;
-  }
+  const miss = [];
+  if (!name) miss.push('성명');
+  if (deptRequired) miss.push('부서');
+  if (compRequired) miss.push('업체명');
+  if (!loc) miss.push('공정(위치)');
+  if (!reportType) miss.push('아차사고 유형');
+  if (!content) miss.push('내용');
+  if (!improveStatus) miss.push('개선 유무');
+  if (miss.length) { showToast('⚠ 입력해 주세요: ' + miss.join(', '), 'var(--red-border)'); return; }
 
   function compressPhotos(photos) {
     return Promise.all(photos.map(p => new Promise(resolve => {
@@ -3374,7 +3423,8 @@ function submitNearmiss() {
         dept: isGS ? dept : '',
         content,
         status: '검토중',
-        name, date:'', area:'', type:'',
+        name, date:'', area:(loc + (locDetail ? ' ' + locDetail : '')), areaMain:loc, areaDetail:locDetail, type:'',
+        reportType, improvement, improveStatus,
         unsafe:'-', freqVal:'', sevVal:'', score:null, action:'-',
         photos: photoUrls
       };
@@ -3385,6 +3435,8 @@ function submitNearmiss() {
       }
       document.getElementById('nearmiss-content').value='';
       document.getElementById('nearmiss-name').value='';
+      ['nearmiss-loc','nearmiss-loc-detail','nearmiss-report-type','nearmiss-improvement'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      document.querySelectorAll('#nearmiss-improve-status .toggle-btn').forEach(b=>b.classList.remove('active'));
       uploadedPhotos=[]; renderPhotos();
       document.querySelectorAll('#nearmiss-company-type .toggle-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
       const nmDept=document.getElementById('nearmiss-dept'); if(nmDept)nmDept.value='';
@@ -3713,9 +3765,12 @@ function renderMyNearmissReportsData(data){
       <div class="report-row"><span class="report-key">소속회사</span><span class="report-val">${r.companyType||'-'}</span></div>
       ${r.companyType==='협력사' ? `<div class="report-row"><span class="report-key">업체명</span><span class="report-val">${r.companyName||'-'}</span></div>` : `<div class="report-row"><span class="report-key">부서</span><span class="report-val">${r.dept||'-'}</span></div>`}
       <div class="report-row"><span class="report-key">성명</span><span class="report-val">${r.name||'-'}</span></div>
+      ${r.area?`<div class="report-row"><span class="report-key">공정(위치)</span><span class="report-val">${nmEsc(r.area)}</span></div>`:''}
+      ${r.reportType?`<div class="report-row"><span class="report-key">유형</span><span class="report-val">${nmEsc(r.reportType)}</span></div>`:''}
       <div class="report-row"><span class="report-key">내용</span><span class="report-val">${r.content||'-'}</span></div>
       <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         ${nmStatusBadge(st)}
+        ${r.improveStatus&&st==='검토중'?`<span class="assign-badge" style="background:${r.improveStatus==='도움필요'?'#fff0f0':'#fff'};color:${r.improveStatus==='도움필요'?'var(--red)':'var(--text-muted)'};border:1.5px solid ${r.improveStatus==='도움필요'?'rgba(232,32,26,0.35)':'var(--border)'};font-weight:700;">신고자: ${r.improveStatus==='도움필요'?'도움필요 (현장 검토)':r.improveStatus}</span>`:''}
         ${nmGradeBadge(r)}
         ${r.assignedDept&&st!=='검토중'?`<span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">${r.assignedDept}${r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">AI</span>':''}</span>`:''}
         ${st==='진행예정'&&!r.dueDate?`<span class="assign-badge" style="background:#fff7ed;color:#ea580c;border:1.5px solid rgba(234,88,12,0.35);">예정일 미입력</span>`:''}
@@ -3789,7 +3844,7 @@ function nmHeight(text){
 
 // 신고내용으로 자동 판정 (초안)
 function nmAutoAssess(r){
-  var text = [r.content, r.area, r.extra, r.actionDetail].filter(Boolean).join(' ');
+  var text = [r.reportType, r.content, r.area, r.improvement, r.extra, r.actionDetail].filter(Boolean).join(' ');
   var missing = [];
 
   // 1) 위험요소 유형
@@ -3904,7 +3959,7 @@ function assessNearmissRisk(r){
 
 // 조치부서 AI 예상: SITE.deptKeywords 단어 일치 수가 가장 많은 부서 → 없으면 신고자 부서 → 없으면 설비팀
 function nmPredictDept(r){
-  var text = [r.content, r.area, r.extra].filter(Boolean).join(' ');
+  var text = [r.reportType, r.content, r.area, r.improvement, r.extra].filter(Boolean).join(' ');
   var map = (window.SITE && SITE.deptKeywords) || {};
   var depts = (SITE.departments || []);
   var best = '', bestHits = [];
@@ -4047,9 +4102,12 @@ function openNearmissDetail(idx){
       ${r.dept?`<tr><th>부서</th><td>${r.dept}</td></tr>`:''}
       <tr><th>성명</th><td>${r.name||'-'}</td></tr>
       <tr><th>발생일자</th><td>${r.date||'-'}</td></tr>
-      <tr><th>장소</th><td>${r.area||'-'}</td></tr>
-      <tr><th>유형</th><td>${r.type||'-'}</td></tr>
+      <tr><th>공정(위치)</th><td>${r.area?nmEsc(r.area):'-'}</td></tr>
+      ${r.reportType?`<tr><th>아차사고 유형<br>(신고자)</th><td>${nmEsc(r.reportType)}</td></tr>`:''}
+      <tr><th>위험요소 유형</th><td>${r.type||'-'}</td></tr>
       <tr><th>내용</th><td>${r.content||'-'}</td></tr>
+      ${r.improvement?`<tr><th>개선 대책<br>(신고자)</th><td>${nmEsc(r.improvement)}</td></tr>`:''}
+      ${r.improveStatus?`<tr><th>개선 유무<br>(신고자)</th><td>${r.improveStatus==='도움필요'?'도움필요 (안전팀과 현장 검토)':r.improveStatus}</td></tr>`:''}
       <tr><th>불안전한<br>행동/상태</th><td>${r.unsafe||'-'}</td></tr>
       <tr><th>위험성</th><td>${r.score?r.score+'점 '+getRiskLabel(r.score,r.sevVal):'-'}</td></tr>
       ${r.docno?`<tr><th>위험성평가<br>문서번호</th><td>${r.docno}</td></tr>`:''}
@@ -4271,13 +4329,18 @@ function openNearmissDetailInputModal(idx){
   document.getElementById('detail-input-extra').value=r.extra||'';
   updateDetailInputScore();
   document.querySelectorAll('#detail-input-unsafe .toggle-btn').forEach(b=>{b.classList.toggle('active',r.unsafe&&r.unsafe.includes(b.dataset.value==='act'?'불안전한 행동':'불안전한 상태'));});
-  document.querySelectorAll('#detail-input-action .toggle-btn').forEach(b=>{b.classList.toggle('active',b.dataset.value===(r.action||''));});
-  const av=r.action||'';
+  const av=(r.action&&r.action!=='-')?r.action:(r.improveStatus==='개선완료'?'yes':(r.improveStatus?'no':''));
+  document.querySelectorAll('#detail-input-action .toggle-btn').forEach(b=>{b.classList.toggle('active',b.dataset.value===av);});
+  const ri=document.getElementById('nm-reporter-info');
+  if(ri){ri.style.display=(r.reportType||r.improvement||r.improveStatus)?'block':'none';
+    ri.innerHTML='<div style="font-weight:800;margin-bottom:4px;">신고자 입력 내용</div>'+
+      '<div><b>공정(위치)</b> '+nmEsc(r.area||'-')+'</div><div><b>유형</b> '+nmEsc(r.reportType||'-')+'</div>'+
+      '<div><b>개선 대책</b> '+nmEsc(r.improvement||'-')+'</div><div><b>개선 유무</b> '+(r.improveStatus==='도움필요'?'<span style="color:var(--red);font-weight:800;">도움필요 (안전팀과 현장 검토)</span>':nmEsc(r.improveStatus||'-'))+'</div>';}
   document.getElementById('detail-action-yes-box').style.display=av==='yes'?'block':'none';
   document.getElementById('detail-action-no-box').style.display=av==='no'?'block':'none';
-  document.getElementById('detail-action-yes-content').value=r.actionDetail&&av==='yes'?r.actionDetail:'';
+  document.getElementById('detail-action-yes-content').value=av==='yes'?(r.actionDetail&&r.action==='yes'?r.actionDetail:(r.improvement||'')):'';
   document.getElementById('detail-action-yes-date').value=av==='yes'?(r.actionDate||''):'';
-  document.getElementById('detail-action-no-content').value=r.actionDetail&&av==='no'?r.actionDetail:'';
+  document.getElementById('detail-action-no-content').value=av==='no'?(r.actionDetail&&r.action==='no'?r.actionDetail:(r.improveStatus==='도움필요'?'신고자 도움 요청 — 안전팀과 현장 검토 필요':(r.improveStatus==='개선예정'&&r.improvement?'개선 예정: '+r.improvement:''))):'';
   detailActionPhotos=(av==='yes'&&r.actionPhotos?r.actionPhotos:[]).map(p=>({src:p}));
   renderDetailActionPhotos();
   const pd=nmPredictDept(r);
@@ -4621,7 +4684,7 @@ async function exportNearmissExcel(){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('아차사고신고');
 
-  const headers = ['접수일','진행상태','소속구분','부서/업체명','작성자','발생일','장소','신고내용','위험요소(유형)','고위험 요인','불안전요인','빈도','빈도 근거','강도','강도 근거','위험성점수','위험성등급','필수조치(3등급↑)','조치기준','산정구분','AI 산정','빠진 정보','조치부서','조치부서 구분','조치예정일','조치방법','착수일','조치완료일','조치결과','신고사진','조치사진'];
+  const headers = ['접수일','진행상태','소속구분','부서/업체명','작성자','발생일','공정(위치)','아차사고 유형(신고)','신고내용','개선대책(신고)','개선유무(신고)','위험요소(유형)','고위험 요인','불안전요인','빈도','빈도 근거','강도','강도 근거','위험성점수','위험성등급','필수조치(3등급↑)','조치기준','산정구분','AI 산정','빠진 정보','조치부서','조치부서 구분','조치예정일','조치방법','착수일','조치완료일','조치결과','신고사진','조치사진'];
   ws.addRow(headers);
   ws.getRow(1).font = { bold:true };
   ws.getRow(1).alignment = { vertical:'middle', horizontal:'center', wrapText:true };
@@ -4662,7 +4725,7 @@ async function exportNearmissExcel(){
     const ra = assessNearmissRisk(r), f = ra.final, au = ra.auto;
     const row = ws.addRow([
       r.submitDate||'', nmStatus(r), r.companyType||'', (r.companyName||r.dept||''),
-      r.name||'', r.date||'', r.area||'', r.content||'',
+      r.name||'', r.date||'', r.area||'', r.reportType||'', r.content||'', r.improvement||'', r.improveStatus||'',
       f.hazard_type, (f.hazard_factors||[]).join(', ') || '-', (r.unsafe&&r.unsafe!=='-')?r.unsafe:'',
       f.frequency, f.frequency_reason, f.severity, f.severity_reason,
       f.risk_score, f.grade+'등급 '+f.risk_level, f.grade>=NM_REQUIRED_GRADE?'Y':'N', f.action + (f.due?(' (기한: '+f.due+')'):''),
