@@ -56,6 +56,17 @@ window.SITE = {
   //  ※ 바꿔도 이전에 저장된 사진은 계속 보입니다.
   photoStore: 'firestore',
 
+  // 아차사고 조치부서 AI 예상 — 신고내용에 아래 단어가 있으면 해당 부서를 미리 지정합니다.
+  // (관리감독자가 틀린 경우 앱에서 수정 가능. 단어는 자유롭게 추가·삭제하세요. 위에 있는 부서가 동점일 때 우선)
+  deptKeywords: {
+    '설비팀':     ['플랜지','개스킷','가스켓','밸브','펌프','배관','그레이팅','보일러','HRSG','터빈','발전기','변압기','정비','누설','누유','커플링','벨트','회전체','모터','전기','배전','차단기','케이블','계측','증기','급수','설비'],
+    '환경팀':     ['약품','가성소다','염산','황산','암모니아','폐수','수처리','탈질','배출','대기','오염','폐기물','화학','유해물질','분진'],
+    '공무팀':     ['공사','건축','건물','비계','도장','지붕','도로','구조물','철골','토목','굴착','용접','크레인','협력업체 작업'],
+    '고객지원팀': ['열수송관','열배관','지역난방','고객','검침','계량기','사용자 시설','공급관'],
+    '운영지원팀': ['사무실','주차장','식당','차량','출입','경비','청소','계단','복도','화장실','휴게실','창고'],
+    '안전팀':     ['안전시설','보호구','소화기','소방','비상구','대피로']
+  },
+
   // 집결지 안내
   assemblyPoints: ['관리동 앞 주차장', '정문 광장'],
 
@@ -823,6 +834,13 @@ window.SITE = {
 
 
   /* ── ESCAPE MAP MODAL ── */
+  .nm-status-tabs { display:flex; gap:6px; overflow-x:auto; padding:2px 0 10px; -webkit-overflow-scrolling:touch; }
+  .nm-st-tab { flex:0 0 auto; border:1.5px solid var(--border); background:#fff; color:var(--text-muted); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .nm-st-tab b { margin-left:5px; font-weight:900; color:var(--text); }
+  .nm-st-tab.on { background:var(--yellow); border-color:var(--yellow); color:#fff; }
+  .nm-st-tab.on b { color:#fff; }
+  #nm-plan-info div { margin-bottom:4px; }
+  #nm-plan-info b { display:inline-block; min-width:62px; color:var(--text-muted); font-weight:700; }
   .escape-map-item { margin-top: 10px; cursor: zoom-in; }
   .escape-map-item:first-child { margin-top: 0; }
   .escape-map-item-title { font-size: 12px; font-weight: 700; color: var(--text); margin: 0 0 6px 2px; }
@@ -1677,6 +1695,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <button class="filter-btn" onclick="applyNearmissFilter()" style="background:var(--yellow);color:#fff;">조회</button>
       <button class="filter-reset" onclick="resetNearmissFilter()">✕</button>
     </div>
+    <div class="nm-status-tabs" id="nm-status-tabs"></div>
     <div class="report-list" id="nearmiss-my-list">
       <div class="report-empty"><div class="report-empty-icon">📭</div>접수된 신고가 없습니다</div>
     </div>
@@ -2402,7 +2421,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div class="risk-modal-overlay" id="nearmiss-detail-input-modal" style="z-index:500;" onclick="closeNearmissDetailInputModal()">
   <div class="risk-modal" onclick="event.stopPropagation()" >
     <div class="risk-modal-header">
-      <div class="risk-modal-title">📝 상세정보 입력</div>
+      <div class="risk-modal-title">📝 검토·승인</div>
       <button class="risk-modal-close" onclick="closeNearmissDetailInputModal()">✕</button>
     </div>
     <div class="risk-modal-body" style="overflow-y:auto;flex:1;">
@@ -2422,12 +2441,10 @@ document.addEventListener('DOMContentLoaded', function(){
         <label class="form-label">유형 <span style="color:var(--red)">*</span></label>
         <div class="select-wrap">
           <select class="form-select" id="detail-input-type" onchange="toggleDetailTypeOther(this.value)">
-            <option value="">유형을 선택하세요</option>
-            <option>미끄러짐 / 넘어짐</option>
-            <option>낙하물 / 충돌</option>
-            <option>끼임 / 말림</option>
-            <option>전기 접촉</option>
-            <option>화학물질 접촉</option>
+            <option value="">위험요소 유형을 선택하세요</option>
+            <option>추락</option><option>넘어짐</option><option>끼임</option><option>부딪힘</option>
+            <option>낙하</option><option>화상</option><option>감전</option><option>누출</option>
+            <option>질식</option><option>화재폭발</option>
             <option value="기타(직접입력)">기타(직접입력)</option>
           </select>
         </div>
@@ -2464,7 +2481,9 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
         <div id="detail-input-risk-card" style="display:none;margin-top:12px;text-align:center;">
           <span id="detail-input-risk-badge" style="display:inline-block;font-size:18px;font-weight:900;padding:10px 32px;border-radius:12px;"></span>
+          <div id="detail-input-risk-action" style="font-size:12px;color:var(--text-muted);margin-top:6px;"></div>
         </div>
+        <div id="nm-auto-hint" style="display:none;margin-top:12px;background:#f8fafc;border:1.5px dashed #93c5fd;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;color:var(--text);"></div>
       </div>
       <div class="form-group" id="detail-input-docno-group" style="display:none;">
         <label class="form-label" style="color:var(--red);font-size:12px;">⚠ 위험성 등록 필요 — 위험성평가 문서번호 입력</label>
@@ -2503,13 +2522,22 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="action-hidden" id="detail-action-no-box" style="display:none;">
         <label class="form-label">조치가 안된 이유는?</label>
         <textarea class="form-textarea" id="detail-action-no-content" style="height:80px;" placeholder="조치가 되지 않은 이유를 입력해 주세요..."></textarea>
+        <label id="detail-no-close-wrap" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:700;cursor:pointer;">
+          <input type="checkbox" id="detail-no-close" onchange="onNmCloseToggle()" style="width:18px;height:18px;">
+          개선조치 없이 종결 (2등급 이하 — 교육·공유로 관리)
+        </label>
+        <div id="detail-no-assign-box" style="margin-top:10px;background:#f8fafc;border:1.5px dashed #93c5fd;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;">
+          <div>🤖 <b>AI 예상 조치부서: <span id="detail-ai-dept" style="color:#dc2626;"></span></b></div>
+          <div id="detail-ai-dept-reason" style="color:var(--text-muted);"></div>
+          <div style="color:var(--text-muted);margin-top:4px;">승인하면 이 부서로 미리 배정되어 '진행예정'이 됩니다. 틀리면 관리감독자가 조치부서를 수정하고, 예정일은 배정된 팀의 관리감독자가 입력합니다.</div>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">기타 조치사항</label>
         <textarea class="form-textarea" id="detail-input-extra" style="height:70px;" placeholder="기타 조치사항이 있다면 입력해 주세요."></textarea>
       </div>
 
-      <button class="btn-submit btn-nearmiss" onclick="saveNearmissDetailInput()">💾 저장</button>
+      <button class="btn-submit btn-nearmiss" onclick="saveNearmissDetailInput()">✅ 승인</button>
       <button class="btn-cancel-login" onclick="closeNearmissDetailInputModal()">취소</button>
     </div>
   </div>
@@ -2607,7 +2635,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div class="risk-modal-overlay" id="assign-modal" onclick="closeAssignModal()">
   <div class="risk-modal" onclick="event.stopPropagation()">
     <div class="risk-modal-header">
-      <div class="risk-modal-title">📌 조치부서 지정</div>
+      <div class="risk-modal-title">📌 조치부서 수정</div>
       <button class="risk-modal-close" onclick="closeAssignModal()">✕</button>
     </div>
     <div class="risk-modal-body">
@@ -2621,11 +2649,38 @@ document.addEventListener('DOMContentLoaded', function(){
           </select>
         </div>
       </div>
+      <div id="assign-current" style="font-size:12px;color:var(--text-muted);margin:-4px 0 12px;line-height:1.6;"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px;">부서를 바꾸면 입력된 예정일은 지워지고, 새로 배정된 팀의 관리감독자가 예정일을 입력합니다.</div>
       <button class="btn-submit btn-nearmiss" onclick="saveAssign()">💾 저장</button>
       <button class="btn-cancel-login" onclick="closeAssignModal()">취소</button>
     </div>
   </div>
 </div>
+<!-- ══ MODAL: 조치계획 검토·착수 (관리감독자) ══ -->
+<div class="risk-modal-overlay" id="nm-plan-modal" onclick="closeNmPlanModal()">
+  <div class="risk-modal" onclick="event.stopPropagation()">
+    <div class="risk-modal-header">
+      <div class="risk-modal-title">🛠 예정일·조치방법 / 착수</div>
+      <button class="risk-modal-close" onclick="closeNmPlanModal()">✕</button>
+    </div>
+    <div class="risk-modal-body">
+      <input type="hidden" id="nm-plan-idx">
+      <input type="hidden" id="nm-plan-docid">
+      <div id="nm-plan-info" style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;margin-bottom:14px;"></div>
+      <div class="form-group">
+        <label class="form-label">조치 예정일 <span style="color:var(--red)">*</span></label>
+        <input type="date" class="form-input" id="nm-plan-due">
+      </div>
+      <div class="form-group">
+        <label class="form-label">조치방법 <span style="color:var(--red)">*</span></label>
+        <textarea class="form-textarea" id="nm-plan-method" style="height:90px;" placeholder="예: 그레이팅 고정클립 전수 점검 후 교체, 완료 전까지 해당 구간 통행 통제"></textarea>
+      </div>
+      <button class="btn-submit" style="background:#2563eb;" onclick="saveNmPlan(true)">▶ 착수 (진행중으로 변경)</button>
+      <button class="btn-cancel-login" onclick="saveNmPlan(false)">💾 계획만 저장 (진행예정 유지)</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL: 빈도 선택 ══ -->
 <div class="risk-modal-overlay" id="freq-select-modal" onclick="closeFreqModal()" style="z-index:650;">
   <div class="risk-modal" onclick="event.stopPropagation()">
@@ -2634,33 +2689,34 @@ document.addEventListener('DOMContentLoaded', function(){
       <button class="risk-modal-close" onclick="closeFreqModal()">✕</button>
     </div>
     <div class="risk-modal-body" style="padding:12px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">노출 주기·동종 이력·방호 상태 중 <b>가장 높은 단계</b>를 기본값으로, 이번에 방호장치가 실제 작동해 피해를 막았으면 −1, 있었는데 작동 안 했거나 우회됐으면 +1. 정보가 없으면 3.</div>
       <table class="risk-select-table">
         <thead><tr><th>구분</th><th>지수</th><th>참고 내용</th></tr></thead>
         <tbody>
           <tr onclick="selectFreqVal(1)" data-val="1" style="background:#eff6ff;">
             <td class="rs-grade" style="color:#2563eb;background:#eff6ff;">가능성<br>없음</td>
             <td class="rs-num" style="background:#eff6ff;">1</td>
-            <td class="rs-desc" style="background:#eff6ff;">안전보건관리기준에 매우 만족한 상태로 고의성이 없거나 정상적인 상태<br><span>최근 10년간 동일한 업무 수행 중 안전사고 발생사례 없음</span></td>
+            <td class="rs-desc" style="background:#eff6ff;">안전보건관리기준에 매우 만족한 상태로 고의성이 없거나 정상적인 상태<br><span>최근 10년간 동일한 업무 수행 중 안전사고 발생사례 없음</span><br><span style="color:#2563eb;">방호·관리: 다중 방호(인터록·이중차단 등) 작동 · 연 1회 이상/비정상작업</span></td>
           </tr>
           <tr onclick="selectFreqVal(2)" data-val="2" style="background:#f0fdf4;">
             <td class="rs-grade" style="color:#16a34a;background:#f0fdf4;">가능성<br>낮음</td>
             <td class="rs-num" style="background:#f0fdf4;">2</td>
-            <td class="rs-desc" style="background:#f0fdf4;">안전보건관리기준에 적합한 상태로 불안전한 행동이 있어도 사고 유발 가능성이 희박함<br><span>최근 5년간 동일한 업무 수행 중 안전사고 발생사례 있음</span></td>
+            <td class="rs-desc" style="background:#f0fdf4;">안전보건관리기준에 적합한 상태로 불안전한 행동이 있어도 사고 유발 가능성이 희박함<br><span>최근 5년간 동일한 업무 수행 중 안전사고 발생사례 있음</span><br><span style="color:#2563eb;">방호·관리: 방호·절차 적정, 교육 실시 · 분기 1회 이상 작업</span></td>
           </tr>
           <tr onclick="selectFreqVal(3)" data-val="3" style="background:#fefce8;">
             <td class="rs-grade" style="color:#ca8a04;background:#fefce8;">가능성<br>있음</td>
             <td class="rs-num" style="background:#fefce8;">3</td>
-            <td class="rs-desc" style="background:#fefce8;">안전보건기준에 만족하는 수준이나, 상태의 변화가 예상되며 불안전한 행동이 병행될 경우 사고의 유발 가능성이 있음<br><span>최근 3년간 동일한 업무 수행 중 안전사고 발생사례가 있음</span></td>
+            <td class="rs-desc" style="background:#fefce8;">안전보건기준에 만족하는 수준이나, 상태의 변화가 예상되며 불안전한 행동이 병행될 경우 사고의 유발 가능성이 있음<br><span>최근 3년간 동일한 업무 수행 중 안전사고 발생사례가 있음</span><br><span style="color:#2563eb;">방호·관리: 방호·절차 있으나 일부 미흡 · 월 1회 이상 작업</span></td>
           </tr>
           <tr onclick="selectFreqVal(4)" data-val="4" style="background:#fff7ed;">
             <td class="rs-grade" style="color:#ea580c;background:#fff7ed;">가능성<br>높음</td>
             <td class="rs-num" style="background:#fff7ed;">4</td>
-            <td class="rs-desc" style="background:#fff7ed;">안전보건기준에 만족하지 못하여 작업환경 개선이 필요한 상태. 잠재된 위험요인이 내재되어 있어 불안전한 행동이 병행될 경우 사고유발 가능성이 높음<br><span>최근 2년간 동일한 업무 수행 중 안전사고 발생 사례가 있음</span></td>
+            <td class="rs-desc" style="background:#fff7ed;">안전보건기준에 만족하지 못하여 작업환경 개선이 필요한 상태. 잠재된 위험요인이 내재되어 있어 불안전한 행동이 병행될 경우 사고유발 가능성이 높음<br><span>최근 2년간 동일한 업무 수행 중 안전사고 발생 사례가 있음</span><br><span style="color:#2563eb;">방호·관리: 방호장치 불완전, 절차 있으나 미준수 · 주 1회 이상 작업</span></td>
           </tr>
           <tr onclick="selectFreqVal(5)" data-val="5" style="background:#fff1f2;">
             <td class="rs-grade" style="color:#dc2626;background:#fff1f2;">빈번함</td>
             <td class="rs-num" style="background:#fff1f2;">5</td>
-            <td class="rs-desc" style="background:#fff1f2;">안전보건기준에 매우 불만족한 상태로 작업환경도 열악한 상태. 위험요인이 항상 내재되어 있어 안전사고 발생가능성이 매우 높음<br><span>최근 1년간 동일한 업무수행 중 안전사고 발생사례가 있음</span></td>
+            <td class="rs-desc" style="background:#fff1f2;">안전보건기준에 매우 불만족한 상태로 작업환경도 열악한 상태. 위험요인이 항상 내재되어 있어 안전사고 발생가능성이 매우 높음<br><span>최근 1년간 동일한 업무수행 중 안전사고 발생사례가 있음</span><br><span style="color:#2563eb;">방호·관리: 방호장치 없음·해제·고장, 절차 없음 · 매일/상시 노출</span></td>
           </tr></tbody>
       </table>
     </div>
@@ -2675,35 +2731,35 @@ document.addEventListener('DOMContentLoaded', function(){
       <button class="risk-modal-close" onclick="closeSevModal()">✕</button>
     </div>
     <div class="risk-modal-body" style="padding:12px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;"><b>"사고로 이어졌다면 예상되는 최악의 결과"</b>로 판정합니다(실제 피해가 없었다고 낮추지 않음). 인적·설비 피해 중 높은 쪽. 고온·고압 유체, 활선, 밀폐공간, 인화성 가스, 2m 이상 고소, 회전체 노출이 있으면 3 이상. 노출 인원 2명 이상이면 한 단계 올림(최대 4).</div>
       <table class="risk-select-table">
         <thead><tr><th>구분</th><th>지수</th><th>참고 내용</th></tr></thead>
         <tbody>
           <tr onclick="selectSevVal(1)" data-val="1" style="background:#eff6ff;">
-            <td class="rs-grade" style="color:#2563eb;background:#eff6ff;">경상</td>
+            <td class="rs-grade" style="color:#2563eb;background:#eff6ff;">피해<br>없음</td>
             <td class="rs-num" style="background:#eff6ff;">1</td>
-            <td class="rs-desc" style="background:#eff6ff;">부상 또는 질병이 발생하지만 작업에 복귀 가능<br><span>응급처치 수준</span></td>
+            <td class="rs-desc" style="background:#eff6ff;">아차사고 발생 가능 · 불시고장 미발생 · 안전설계/효율/운전성 향상을 위한 변경<br><span>설비: 경미한 설비 손상</span></td>
           </tr>
           <tr onclick="selectSevVal(2)" data-val="2" style="background:#f0fdf4;">
-            <td class="rs-grade" style="color:#16a34a;background:#f0fdf4;">중경상</td>
+            <td class="rs-grade" style="color:#16a34a;background:#f0fdf4;">피해<br>거의 없음</td>
             <td class="rs-num" style="background:#f0fdf4;">2</td>
-            <td class="rs-desc" style="background:#f0fdf4;">부상 또는 질병이 발생하고 며칠간 작업 불가<br><span>병원 치료 필요</span></td>
+            <td class="rs-desc" style="background:#f0fdf4;">사내 구급조치 안전사고 · 출력 감발 없는 불시고장 · 물적손실 1천만원 미만<br><span>설비: 보조설비 손상, 생산 영향 없음 / 예: 통로 장애물 걸림, 경미한 찰과상</span></td>
           </tr>
           <tr onclick="selectSevVal(3)" data-val="3" style="background:#fefce8;">
-            <td class="rs-grade" style="color:#ca8a04;background:#fefce8;">중상</td>
+            <td class="rs-grade" style="color:#ca8a04;background:#fefce8;">피해<br>다소 발생</td>
             <td class="rs-num" style="background:#fefce8;">3</td>
-            <td class="rs-desc" style="background:#fefce8;">부상 또는 질병이 심각하여 장기 치료 필요<br><span>입원 치료 수준</span></td>
+            <td class="rs-desc" style="background:#fefce8;">통원치료자 발생 · 불시고장으로 출력 감발 · 물적손실 3천만원 이내<br><span>설비: 주요 설비 손상, 부분 출력 감발, 사내 누출 / 예: 계단·바닥 미끄러짐, 공구 낙하(저높이), 경미한 고온부 접촉</span></td>
           </tr>
           <tr onclick="selectSevVal(4)" data-val="4" style="background:#fff7ed;">
-            <td class="rs-grade" style="color:#ea580c;background:#fff7ed;">중대</td>
+            <td class="rs-grade" style="color:#ea580c;background:#fff7ed;">피해<br>중대함</td>
             <td class="rs-num" style="background:#fff7ed;">4</td>
-            <td class="rs-desc" style="background:#fff7ed;">영구적 신체장해 또는 심각한 질병 발생<br><span>노동능력 일부 상실</span></td>
+            <td class="rs-desc" style="background:#fff7ed;">입원치료자 발생 · 3일 이하 운전정지 · 물적손실 1억원 이내<br><span>설비: 화재·폭발, 발전 정지, 유해물질 외부 누출 / 예: 플랜지 개스킷 누설 고온수 분출, 밸브 핸들 반동, 사다리 1~2m 추락, 화학약품(가성소다·염산) 비산</span></td>
           </tr>
           <tr onclick="selectSevVal(5)" data-val="5" style="background:#fff1f2;">
-            <td class="rs-grade" style="color:#dc2626;background:#fff1f2;">치명</td>
+            <td class="rs-grade" style="color:#dc2626;background:#fff1f2;">피해<br>막대함</td>
             <td class="rs-num" style="background:#fff1f2;">5</td>
-            <td class="rs-desc" style="background:#fff1f2;">사망 또는 영구적 완전 노동능력 상실<br><span>돌이킬 수 없는 피해</span></td>
+            <td class="rs-desc" style="background:#fff1f2;">사망 또는 중상 3인 이상 · 3일 이상 운전정지 · 물적손실 1억원 이상<br><span>예: 2m 이상 추락, 고온·고압 증기/급수 배관 파열·누출, 활선 근접 감전, 밀폐공간 산소결핍·가스, LNG/연료가스 누출, 중량물 낙하, 회전체 협착</span></td>
           </tr>
-
         </tbody>
       </table>
     </div>
@@ -2738,14 +2794,11 @@ let stopUploadedPhotos = [];
 let adminRequests = [];
 let navHistory      = ['page-home'];
 
-function getRiskLabel(score) {
+function getRiskLabel(score, sev) {
   if (!score && score !== 0) return '';
-  const s = parseInt(score);
-  if (s <= 3)  return '<span class="report-badge badge-lv5">5등급·무시</span>';
-  if (s <= 6)  return '<span class="report-badge badge-lv4">4등급·경미함</span>';
-  if (s <= 10) return '<span class="report-badge badge-lv3">3등급·잠재위험</span>';
-  if (s <= 19) return '<span class="report-badge badge-lv2">2등급·중대위험</span>';
-  return '<span class="report-badge badge-lv1">1등급·수용불가</span>';
+  const g = nmGrade(score, sev);
+  if (!g) return '';
+  return '<span class="report-badge badge-lv'+(6-g.grade)+'">'+g.grade+'등급·'+g.label+'</span>';
 }
 
 function openLoginModal() {
@@ -3320,7 +3373,7 @@ function submitNearmiss() {
         companyName: isGS ? '' : companyName,
         dept: isGS ? dept : '',
         content,
-        status: '접수',
+        status: '검토중',
         name, date:'', area:'', type:'',
         unsafe:'-', freqVal:'', sevVal:'', score:null, action:'-',
         photos: photoUrls
@@ -3622,32 +3675,38 @@ function applyStopFilter(){
 function resetStopFilter(){document.getElementById('stop-filter-from').value='';document.getElementById('stop-filter-to').value='';renderMyStopReportsData(stopReports);}
 
 // ── 아차사고 신고현황 렌더 ──
-function renderMyNearmissReports(){renderMyNearmissReportsData(nearmissReports);}
+function renderMyNearmissReports(){ if(document.getElementById('nearmiss-filter-from')) applyNearmissFilter(); else renderMyNearmissReportsData(nearmissReports);}
 
 function renderMyNearmissReportsData(data){
   const el=document.getElementById('nearmiss-my-list');
   if(!el)return;
-  if(!data||data.length===0){el.innerHTML='<div class="report-empty"><div class="report-empty-icon">📭</div>접수된 신고가 없습니다</div>';return;}
+  renderNmStatusTabs(data||[]);
+  if(nmStatusFilter!=='전체') data=(data||[]).filter(r=>nmStatus(r)===nmStatusFilter);
+  if(!data||data.length===0){el.innerHTML='<div class="report-empty"><div class="report-empty-icon">📭</div>'+(nmStatusFilter==='전체'?'접수된 신고가 없습니다':nmStatusFilter+' 상태의 신고가 없습니다')+'</div>';return;}
   const isAdmin=currentRole==='관리자';
   const isSafety=isAdmin&&currentUserRole==='안전팀';
-  const isSafetyAdmin=isSafety;
-  const isDetailEditable=!data[0]?.assignedDept;// 임시
-  el.innerHTML=data.map((r,idx)=>{
-    const isMyDept=isAdmin&&currentUserDept&&r.assignedDept&&r.assignedDept===currentUserDept;
-    const canDetail=!r.assignedDept&&isAdmin&&(isSafety||(currentUserDept&&r.dept===currentUserDept));
-    const assignBadge = '';
-    const statusBadge = '';
+  el.innerHTML=data.map(r=>{
+    const idx=nearmissReports.indexOf(r);   // 필터와 관계없이 원본 목록 위치로 연결
+    const st=nmStatus(r);
+    const isMyDept=isAdmin&&!!currentUserDept&&!!r.assignedDept&&r.assignedDept===currentUserDept;  // 배정된 팀의 관리감독자
+    const btn=(style,fn,label)=>`<button class="assign-btn" style="${style}" onclick="event.stopPropagation();${fn}(${idx})">${label}</button>`;
+    let btns='';
+    if(isSafety&&st==='검토중'){
+      btns+=btn('border-color:#9ca3af;background:#f3f4f6;color:#6b7280;','openNearmissBasicEditModal','신고내용수정');
+      btns+=btn('border-color:var(--red);background:#fff0f0;color:var(--red);font-weight:800;','openNearmissDetailInputModal','검토·승인');
+    }
+    if(isAdmin&&st==='진행예정')btns+=btn('','openAssignModal','조치부서 수정');
+    if(isMyDept&&st==='진행예정')btns+=btn('border-color:#2563eb;background:#eff6ff;color:#2563eb;font-weight:800;','openNmPlanModal',r.dueDate?'예정일·조치방법 / 착수':'예정일 입력·착수');
+    if(isMyDept&&st==='진행중'){
+      btns+=btn('border-color:#00a854;background:#f0fff7;color:#00a854;font-weight:800;','openActionResultModal','조치결과 입력');
+      btns+=btn('border-color:#ea580c;background:#fff7ed;color:#ea580c;','openChangeDueModal','예정일 변경');
+    }
+    if(isSafety)btns+=`<button class="report-del-btn" onclick="event.stopPropagation();deleteReport('nearmissReports','${r.docId}','nearmiss')">🗑</button>`;
     return `<div class="report-card report-card-clickable" onclick="openNearmissDetail(${idx})">
       <div class="report-card-header" style="flex-wrap:wrap;row-gap:6px;">
         <span class="report-card-date" style="font-size:14px;font-weight:900;color:var(--text);">${r.submitDate||''}</span>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          ${isSafety&&!r.date?`<button class="assign-btn" style="border-color:#9ca3af;background:#f3f4f6;color:#6b7280;" onclick="event.stopPropagation();openNearmissBasicEditModal(${idx})">신고내용수정</button>`:''}
-          ${canDetail?`<button class="assign-btn" style="border-color:var(--red);background:#fff0f0;color:var(--red);" onclick="event.stopPropagation();openNearmissDetailInputModal(${idx})">${r.date?'상세수정':'상세입력'}</button>`:''}
-          ${isSafety&&r.date&&!r.actionCompleted?`<button class="assign-btn" onclick="event.stopPropagation();openAssignModal(${idx})">${r.assignedDept?'조치부서 재지정':'조치부서 지정'}</button>`:''}
-          ${isMyDept&&(!r.dueDate||r.dueDate==='')?`<button class="assign-btn" style="border-color:#00a854;background:#f0fff7;color:#00a854;font-weight:700;" onclick="event.stopPropagation();openActionModal(${idx})">${(parseInt(r.score)||0)>=20?'조치결과 입력':'조치 예정일 입력'}</button>`:''}
-          ${isMyDept&&r.dueDate&&r.dueDate!==''&&!r.actionCompleted?`<button class="assign-btn" style="border-color:#2563eb;background:#f0f4ff;color:#2563eb;" onclick="event.stopPropagation();openActionResultModal(${idx})">조치결과 입력</button>`:''}
-          ${isMyDept&&r.dueDate&&r.dueDate!==''&&!r.actionCompleted?`<button class="assign-btn" style="border-color:#00a854;background:#f0fff7;color:#00a854;" onclick="event.stopPropagation();openChangeDueModal(${idx})">조치 예정일 변경</button>`:''}
-          ${isSafetyAdmin?`<button class="report-del-btn" onclick="event.stopPropagation();deleteReport('nearmissReports','${r.docId}','nearmiss')">🗑</button>`:''}
+          ${btns}
           <span style="font-size:18px;color:var(--text-muted);">›</span>
         </div>
       </div>
@@ -3655,19 +3714,309 @@ function renderMyNearmissReportsData(data){
       ${r.companyType==='협력사' ? `<div class="report-row"><span class="report-key">업체명</span><span class="report-val">${r.companyName||'-'}</span></div>` : `<div class="report-row"><span class="report-key">부서</span><span class="report-val">${r.dept||'-'}</span></div>`}
       <div class="report-row"><span class="report-key">성명</span><span class="report-val">${r.name||'-'}</span></div>
       <div class="report-row"><span class="report-key">내용</span><span class="report-val">${r.content||'-'}</span></div>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-        ${!r.date
-          ? `<span class="assign-badge" style="background:#fff0f0;color:var(--red);border:1.5px solid rgba(232,32,26,0.3);">상세입력 대기</span>`
-          : r.actionCompleted
-            ? `<span class="assign-badge" style="background:#f0fff7;color:#00a854;border:1.5px solid rgba(0,168,84,0.4);font-weight:700;">조치완료</span>`
-            : !r.assignedDept
-              ? `<span class="assign-badge" style="background:#f0fff7;color:#00a854;border:1.5px solid rgba(0,168,84,0.4);font-weight:700;">조치부서 미지정</span>`
-              : `<span class="assign-badge" style="background:#f0fff7;color:#00a854;border:1.5px solid rgba(0,168,84,0.4);font-weight:700;">${r.assignedDept}</span>
-                 <span class="assign-badge" style="background:#f0fff7;color:#00a854;border:1.5px solid rgba(0,168,84,0.4);font-weight:700;">${(!r.dueDate&&!r.changedDueDate)||r.dueDate==='' ? '조치 예정일 미입력' : '조치 중'}</span>`
-        }
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        ${nmStatusBadge(st)}
+        ${nmGradeBadge(r)}
+        ${r.assignedDept&&st!=='검토중'?`<span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">${r.assignedDept}${r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">AI</span>':''}</span>`:''}
+        ${st==='진행예정'&&!r.dueDate?`<span class="assign-badge" style="background:#fff7ed;color:#ea580c;border:1.5px solid rgba(234,88,12,0.35);">예정일 미입력</span>`:''}
+        ${r.dueDate&&(st==='진행예정'||st==='진행중')?`<span class="assign-badge" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);">예정 ${r.changedDueDate||r.dueDate}</span>`:''}
       </div>
     </div>`;
   }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// ▣ 아차사고 위험성 산정 기준 (빈도×강도) — GS구미열병합발전 2026.11.11 기준서
+//   · 안전관리자가 승인 시 입력한 빈도·강도가 있으면 그 값을 '확정'으로 사용
+//   · 없으면 신고내용을 아래 키워드 규칙으로 판정한 '자동 초안'을 사용 (반드시 안전관리자 확인)
+// ════════════════════════════════════════════════════════════════
+var NM_GRADES = [
+  { grade:5, min:20, max:25, label:'수용불가',          action:'즉시 작업 중지, 임시 안전조치 후 근본 대책', due:'즉시' },
+  { grade:4, min:11, max:19, label:'중대한 위험',       action:'작업 전 임시 안전조치, 개선계획 수립·이행',  due:'' },
+  { grade:3, min:7,  max:10, label:'잠재되거나 다소위험', action:'개선계획 수립, 그 전까지 관리감독 강화',     due:'' },
+  { grade:2, min:4,  max:6,  label:'경미',              action:'현 관리 유지, 가능하면 개선',              due:'' },
+  { grade:1, min:1,  max:3,  label:'무시',              action:'교육·공유로 관리',                        due:'' }
+];
+var NM_REQUIRED_GRADE = 3;   // 3등급 이상은 개선조치 필수
+var NM_HAZARD_TYPES = ['추락','넘어짐','끼임','부딪힘','낙하','화상','감전','누출','질식','화재폭발','기타'];
+
+// 점수(+강도) → 등급. 강도 4 이상은 점수와 관계없이 최소 3등급
+function nmGrade(score, sev){
+  score = parseInt(score)||0; if (!score) return null;
+  var g = NM_GRADES.filter(function(x){ return score>=x.min && score<=x.max; })[0] || NM_GRADES[4];
+  if ((parseInt(sev)||0) >= 4 && g.grade < 3) g = NM_GRADES[2];
+  return g;
+}
+function nmEsc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+// 예전 유형값 → 기준서 위험요소 유형
+var NM_TYPE_LEGACY = { '미끄러짐 / 넘어짐':'넘어짐', '끼임 / 말림':'끼임', '전기 접촉':'감전', '화학물질 접촉':'누출' };
+
+// [유형, 일반 키워드(1점), "~할 뻔" 같은 결과 표현(2점)] — 동점이면 위에 있는 유형 우선
+var NM_HAZARD_RULES = [
+  ['질식',   ['질식','밀폐','산소결핍','맨홀','유해가스','황화수소','일산화탄소','탱크 내부'], ['질식할 뻔','쓰러질 뻔']],
+  ['화재폭발',['화재','폭발','불꽃','발화','인화','불티','LNG','연료가스','가스 누출','가스누출'], ['불이 날 뻔','폭발할 뻔','불이 붙']],
+  ['감전',   ['감전','활선','충전부','누전','배전반','분전반','스파크','전선','특고압'], ['감전될 뻔','감전 될 뻔','찌릿']],
+  ['추락',   ['추락','개구부','사다리','고소','비계','난간','지붕','그레이팅','발판','작업대'], ['떨어질 뻔','빠질 뻔','추락할 뻔','헛디뎌']],
+  ['화상',   ['화상','고온','뜨거','스팀','증기','열수','배기가스'], ['데일 뻔','화상 입을 뻔','데었']],
+  ['끼임',   ['끼임','끼일','협착','말림','회전체','회전부','벨트','커플링','롤러','기어','체인'], ['끼일 뻔','말려들 뻔','손이 끼']],
+  ['낙하',   ['낙하','공구','스패너','렌치','볼트','자재','중량물','인양','크레인','호이스트','떨어졌','떨어짐'], ['맞을 뻔','떨어져 맞']],
+  ['누출',   ['누출','누설','누유','비산','분출','가성소다','염산','황산','암모니아','약품'], ['튈 뻔','눈에 들어갈 뻔']],
+  ['부딪힘', ['부딪','충돌','지게차','차량','운반차'], ['부딪힐 뻔','치일 뻔','충돌할 뻔']],
+  ['넘어짐', ['넘어','미끄러','걸려','전도','계단','바닥','장애물'], ['넘어질 뻔','미끄러질 뻔','걸려 넘어','미끄러졌']]
+];
+
+// 강도 3 이상으로 시작하는 고위험 요소
+var NM_HIGH_RISK = [
+  ['고온·고압 유체', ['고온','고압','스팀','증기','열수','급수','보일러수','과열']],
+  ['전기(활선)',     ['활선','충전부','특고압','고압전기','감전']],
+  ['밀폐공간',       ['밀폐','맨홀','산소결핍','탱크 내부']],
+  ['인화성 가스',    ['LNG','연료가스','가스 누출','가스누출','수소','인화성']],
+  ['회전체 노출',    ['회전체','회전부','커플링','벨트','롤러','임펠러','기어']]
+];
+
+function nmHits(text, words){ return words.filter(function(w){ return text.indexOf(w) >= 0; }); }
+function nmAny(text, words){ return nmHits(text, words).length > 0; }
+
+// 높이(m) 추출: "1.5m", "2 미터", "3층"(2층 이상이면 2m 이상으로 봄)
+function nmHeight(text){
+  var m = text.match(/(\d+(?:\.\d+)?)\s*(m|M|미터)(?![a-zA-Z])/);
+  if (m) return { value: parseFloat(m[1]), src: m[0] };
+  var f = text.match(/(\d+)\s*층/);
+  if (f && parseInt(f[1]) >= 2) return { value: 3, src: f[0] };
+  return null;
+}
+
+// 신고내용으로 자동 판정 (초안)
+function nmAutoAssess(r){
+  var text = [r.content, r.area, r.extra, r.actionDetail].filter(Boolean).join(' ');
+  var missing = [];
+
+  // 1) 위험요소 유형
+  var best = null, bestScore = 0;
+  NM_HAZARD_RULES.forEach(function(rule){
+    var s = nmHits(text, rule[1]).length + nmHits(text, rule[2]).length * 2;
+    if (s > bestScore) { best = rule[0]; bestScore = s; }
+  });
+  var hazard = best || '기타';
+
+  // 고위험 요소
+  var height = nmHeight(text);
+  var factors = NM_HIGH_RISK.filter(function(h){ return nmAny(text, h[1]); }).map(function(h){ return h[0]; });
+  var highFall = hazard === '추락' && ((height && height.value >= 2) || nmAny(text, ['고소','개구부','지붕','비계']));
+  if (highFall) factors.push('2m 이상 고소');
+
+  // 2) 강도 — 기준서 강도표의 발전설비 예시로 "사고로 이어졌다면 최악의 결과" 판정
+  var sev = 0, sevWhy = [];
+  function S(level, why){ if (level > sev) { sev = level; sevWhy = [why]; } else if (level === sev) sevWhy.push(why); }
+  if (highFall) S(5, '고소 2m 이상 추락 위험' + (height ? '(' + height.src + ')' : ''));
+  if (nmAny(text, ['증기','스팀','고압']) && nmAny(text, ['파열','누출','분출','누설'])) S(5, '고온·고압 증기/급수 배관 파열·누출');
+  if (nmAny(text, ['활선','충전부','특고압','고압전기'])) S(5, '활선 근접 감전');
+  if (nmAny(text, ['밀폐','맨홀','산소결핍','탱크 내부'])) S(5, '밀폐공간 산소결핍·가스');
+  if (nmAny(text, ['LNG','연료가스','가스 누출','가스누출'])) S(5, 'LNG/연료가스 누출');
+  if (nmAny(text, ['중량물','크레인','호이스트','인양'])) S(5, '중량물 낙하');
+  if (hazard === '끼임' && nmAny(text, ['회전체','회전부','커플링','벨트','롤러','임펠러','기어'])) S(5, '회전체 협착');
+  if (nmAny(text, ['플랜지','개스킷','가스켓']) && nmAny(text, ['고온수','누설','분출','누출'])) S(4, '플랜지 개스킷 누설로 고온수 분출');
+  if (nmAny(text, ['밸브']) && nmAny(text, ['핸들','반동'])) S(4, '밸브 조작 중 핸들 반동');
+  if (hazard === '추락' && !highFall && nmAny(text, ['사다리'])) S(4, '사다리 1~2m 추락');
+  if (nmAny(text, ['가성소다','염산','황산','암모니아','화학약품','약품'])) S(4, '화학약품 비산');
+  if (nmAny(text, ['화재','폭발'])) S(4, '화재·폭발');
+  if (nmAny(text, ['발전 정지','운전정지','운전 정지','트립'])) S(4, '발전 정지(운전정지)');
+  if (nmAny(text, ['계단','바닥']) && nmAny(text, ['미끄러'])) S(3, '계단·바닥 미끄러짐');
+  if (hazard === '낙하' && nmAny(text, ['공구','스패너','렌치','볼트'])) S(3, '공구 낙하(저높이)');
+  if (nmAny(text, ['고온부','뜨거운'])) S(3, '경미한 고온부 접촉');
+  if (nmAny(text, ['출력 감발','출력감발'])) S(3, '불시고장으로 출력 감발');
+  if (nmAny(text, ['장애물']) && nmAny(text, ['걸려','걸림'])) S(2, '통로 장애물 걸림');
+  if (nmAny(text, ['찰과상','긁힘'])) S(2, '경미한 찰과상');
+  if (!sev) {
+    sev = (hazard === '기타' || hazard === '넘어짐') ? 2 : 3;
+    sevWhy = [hazard + ' 위험 — 기준서 예시에 해당 없음, 유형 기본값'];
+    missing.push('예상 피해 정도');
+  }
+  if (factors.length && sev < 3) { sev = 3; sevWhy.push('고위험 요소(' + factors.join('·') + ') → 강도 3 이상'); }
+  var people = text.match(/(\d+)\s*(명|인)/);
+  var many = (people && parseInt(people[1]) >= 2) || nmAny(text, ['여러 명','두 명','작업자들','다수']);
+  if (many && sev < 4) { sev = sev + 1; sevWhy.push('노출 인원 2명 이상 → +1'); }
+  if (hazard === '추락' && !height) missing.push('높이');
+
+  // 3) 빈도 — 노출 주기·동종 이력·방호 상태 중 가장 높은 단계
+  var parts = [];
+  var exp = 0, expWhy = '';
+  if (nmAny(text, ['매일','상시','항상','날마다','매번','매 순회'])) { exp = 5; expWhy = '매일/상시 노출'; }
+  else if (nmAny(text, ['매주','주 1회','주1회','주간'])) { exp = 4; expWhy = '주 1회 이상 작업'; }
+  else if (nmAny(text, ['매월','월 1회','월1회','한 달에'])) { exp = 3; expWhy = '월 1회 이상 작업'; }
+  else if (nmAny(text, ['분기'])) { exp = 2; expWhy = '분기 1회 이상 작업'; }
+  else if (nmAny(text, ['연 1회','년 1회','오버홀','계획예방정비','비정상작업'])) { exp = 1; expWhy = '연 1회/비정상작업'; }
+  if (exp) parts.push([exp, expWhy]); else missing.push('작업 빈도(노출 주기)');
+
+  var hist = 0, histWhy = '';
+  if (nmAny(text, ['지난달','지난 달','이번 달','올해','최근에도','재발','또 발생','반복','전에도','지난주','어제도','동일 사례'])) { hist = 5; histWhy = '1년 내 동종 사례(재발)'; }
+  else if (nmAny(text, ['작년','지난해'])) { hist = 4; histWhy = '2년 내 동종 사례'; }
+  if (hist) parts.push([hist, histWhy]); else missing.push('동종 이력');
+
+  var prot = 0, protWhy = '';
+  var guard = '(난간|덮개|커버|방호|가드|인터록|클립|고정|안전망|발판|잠금|차단기)';
+  if (new RegExp(guard + '[^.,]{0,8}(없|빠|탈락|파손|고장|해제|미설치|훼손|풀)').test(text)) { prot = 5; protWhy = '방호장치 없음·해제·고장'; }
+  else if (nmAny(text, ['미준수','지키지 않','무시하고'])) { prot = 4; protWhy = '절차 있으나 미준수'; }
+  else if (nmAny(text, ['미흡','부족'])) { prot = 3; protWhy = '방호·절차 일부 미흡'; }
+  if (prot) parts.push([prot, protWhy]); else missing.push('방호장치 상태');
+
+  var freq, freqWhy;
+  if (parts.length) {
+    parts.sort(function(a,b){ return b[0]-a[0]; });
+    freq = parts[0][0]; freqWhy = parts.map(function(p){ return p[1] + '(' + p[0] + ')'; }).join(', ');
+  } else { freq = 3; freqWhy = '정보 부족 → 기본 3'; }
+  // 방호 보정 (1단계까지만)
+  if (/(통제|인터록|차단|방호|안전망|안전대|난간|가드)[^.]{0,12}(작동|덕분|로 피해|으로 피해|막)/.test(text)) {
+    if (freq > 1) { freq -= 1; freqWhy += ' / 방호·통제 작동 → −1'; }
+  } else if (nmAny(text, ['작동하지 않','미작동','우회','해제하고','해제된 상태'])) {
+    if (freq < 5) { freq += 1; freqWhy += ' / 방호장치 미작동·우회 → +1'; }
+  }
+
+  var score = freq * sev, g = nmGrade(score, sev);
+  return {
+    hazard_type: hazard, hazard_factors: factors,
+    frequency: freq, frequency_reason: freqWhy,
+    severity: sev, severity_reason: sevWhy.join(', '),
+    risk_score: score, grade: g.grade, risk_level: g.label,
+    acceptable: g.grade < NM_REQUIRED_GRADE, action: g.action, due: g.due,
+    missing_info: missing, needs_review: true, source: 'AI'
+  };
+}
+
+// 엑셀·화면용 최종 판정: 승인 때 입력한 빈도·강도가 있으면 '확정', 없으면 '자동 초안'
+function assessNearmissRisk(r){
+  var auto = nmAutoAssess(r);
+  var f = parseInt(r.freqVal), s = parseInt(r.sevVal);
+  if (!(f && s)) return { final: auto, auto: auto };
+  var typ = NM_TYPE_LEGACY[r.type] || (NM_HAZARD_TYPES.indexOf(r.type) >= 0 ? r.type : '') || (r.type ? r.type : auto.hazard_type);
+  if (r.type === '낙하물 / 충돌') typ = (auto.hazard_type === '부딪힘') ? '부딪힘' : '낙하';
+  var g = nmGrade(f*s, s);
+  return { auto: auto, final: {
+    hazard_type: typ, hazard_factors: auto.hazard_factors,
+    frequency: f, frequency_reason: '안전관리자 확정',
+    severity: s, severity_reason: '안전관리자 확정',
+    risk_score: f*s, grade: g.grade, risk_level: g.label,
+    acceptable: g.grade < NM_REQUIRED_GRADE, action: g.action, due: g.due,
+    missing_info: [], needs_review: false, source: '확정'
+  }};
+}
+
+// 조치부서 AI 예상: SITE.deptKeywords 단어 일치 수가 가장 많은 부서 → 없으면 신고자 부서 → 없으면 설비팀
+function nmPredictDept(r){
+  var text = [r.content, r.area, r.extra].filter(Boolean).join(' ');
+  var map = (window.SITE && SITE.deptKeywords) || {};
+  var depts = (SITE.departments || []);
+  var best = '', bestHits = [];
+  Object.keys(map).forEach(function(d){
+    if (depts.indexOf(d) < 0) return;
+    var h = nmHits(text, map[d] || []);
+    if (h.length > bestHits.length) { best = d; bestHits = h; }
+  });
+  if (best) return { dept: best, reason: bestHits.slice(0,3).join('·') + ' → ' + best };
+  if (r.dept && depts.indexOf(r.dept) >= 0) return { dept: r.dept, reason: '관련 단어 없음 → 신고자 소속 부서' };
+  var fb = depts.indexOf('설비팀') >= 0 ? '설비팀' : (depts.filter(function(d){ return d !== '안전팀'; })[0] || depts[0] || '');
+  return { dept: fb, reason: '관련 단어 없음 → 기본 부서' };
+}
+
+// ════════════════════════════════════════════════════════════════
+// ▣ 아차사고 진행상태: 검토중 → 진행예정 → 진행중 → 조치완료
+// ════════════════════════════════════════════════════════════════
+var NM_STATUS_LIST = ['검토중','진행예정','진행중','조치완료'];
+var NM_STATUS_STYLE = {
+  '검토중':  { bg:'#f3f4f6', color:'#4b5563', border:'#d1d5db' },
+  '진행예정':{ bg:'#eff6ff', color:'#2563eb', border:'rgba(37,99,235,0.35)' },
+  '진행중':  { bg:'#fff7ed', color:'#ea580c', border:'rgba(234,88,12,0.35)' },
+  '조치완료':{ bg:'#f0fff7', color:'#00a854', border:'rgba(0,168,84,0.4)' }
+};
+function nmStatus(r){
+  if (!r) return '검토중';
+  if (r.actionCompleted || r.status === '완료' || r.status === '조치완료') return '조치완료';
+  if (r.status === '진행중' || r.startedAt) return '진행중';
+  if (r.status === '진행예정' || (r.status === '조치중' && r.assignedDept)) return '진행예정';
+  return '검토중';   // '검토중', 예전 '접수'·'상세입력완료'
+}
+function nmStatusBadge(st){
+  var c = NM_STATUS_STYLE[st] || NM_STATUS_STYLE['검토중'];
+  return '<span class="assign-badge" style="background:'+c.bg+';color:'+c.color+';border:1.5px solid '+c.border+';font-weight:800;">'+st+'</span>';
+}
+function nmGradeBadge(r){
+  var g = nmGrade(r.score, r.sevVal); if (!g) return '';
+  return '<span class="report-badge badge-lv'+(6-g.grade)+'" style="font-size:11px;">'+g.grade+'등급·'+g.label+'</span>';
+}
+
+var nmStatusFilter = '전체';
+function setNmStatusFilter(st){ nmStatusFilter = st; applyNearmissFilter(); }
+function renderNmStatusTabs(list){
+  var el = document.getElementById('nm-status-tabs'); if (!el) return;
+  var counts = { '전체': list.length };
+  NM_STATUS_LIST.forEach(function(s){ counts[s] = 0; });
+  list.forEach(function(r){ counts[nmStatus(r)]++; });
+  el.innerHTML = ['전체'].concat(NM_STATUS_LIST).map(function(s){
+    var on = s === nmStatusFilter;
+    return '<button type="button" class="nm-st-tab'+(on?' on':'')+'" onclick="setNmStatusFilter(\''+s+'\')">'+s+'<b>'+counts[s]+'</b></button>';
+  }).join('');
+}
+
+// ── 조치계획 검토·착수 (관리감독자) ──
+function openNmPlanModal(idx){
+  var r = nearmissReports[idx]; if (!r) return;
+  document.getElementById('nm-plan-idx').value = idx;
+  document.getElementById('nm-plan-docid').value = r.docId || '';
+  var g = nmGrade(r.score, r.sevVal);
+  document.getElementById('nm-plan-info').innerHTML =
+    '<div><b>조치부서</b> ' + nmEsc(r.assignedDept || '-') + (r.assignedByAI ? ' <span style="color:#dc2626;font-weight:800;">(AI 예상)</span>' : '') + '</div>' +
+    '<div><b>위험성</b> ' + (g ? (r.score + '점 · ' + g.grade + '등급 ' + g.label + ' — ' + g.action) : '-') + '</div>' +
+    '<div><b>신고내용</b> ' + nmEsc(r.content || '-') + '</div>';
+  var g5 = nmGrade(r.score, r.sevVal);
+  document.getElementById('nm-plan-due').value = r.dueDate || ((g5 && g5.grade === 5) ? new Date(Date.now()+9*3600e3).toISOString().slice(0,10) : '');
+  document.getElementById('nm-plan-method').value = r.actionPlan || '';
+  document.getElementById('nm-plan-modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeNmPlanModal(){ document.getElementById('nm-plan-modal').classList.remove('active'); document.body.style.overflow=''; }
+function saveNmPlan(start){
+  var idx = parseInt(document.getElementById('nm-plan-idx').value);
+  var docId = document.getElementById('nm-plan-docid').value;
+  var due = document.getElementById('nm-plan-due').value;
+  var method = document.getElementById('nm-plan-method').value.trim();
+  if (!due) { showToast('⚠ 조치 예정일을 입력해 주세요','var(--red-border)'); return; }
+  if (start && !method) { showToast('⚠ 조치방법을 입력해야 착수할 수 있습니다','var(--red-border)'); return; }
+  var cur = nearmissReports[idx] || {};
+  if (!currentUserDept || cur.assignedDept !== currentUserDept) { showToast('⚠ 배정된 팀(' + (cur.assignedDept||'-') + ')의 관리감독자만 입력할 수 있습니다','var(--red-border)'); return; }
+  var upd = { dueDate: due, actionPlan: method, planUpdatedAt: Date.now(), planBy: currentUserDept || '' };
+  if (!cur.originalDueDate) upd.originalDueDate = due;
+  if (start) { upd.status = '진행중'; upd.startedAt = Date.now(); upd.startedBy = (window._adminUser && window._adminUser.email) || currentUserDept || ''; }
+  var msg = start ? '▶ 착수 처리되었습니다 (진행중)' : '💾 조치계획이 저장되었습니다';
+  if (!window.__db || !docId) { if (nearmissReports[idx]) Object.assign(nearmissReports[idx], upd); closeNmPlanModal(); renderMyNearmissReports(); showToast(msg); return; }
+  window.__db.collection('nearmissReports').doc(docId).update(upd)
+    .then(function(){ closeNmPlanModal(); switchPageTab('nearmiss','history'); showToast(msg); })
+    .catch(function(e){ showToast('❌ 저장 실패: ' + e.message, 'var(--red-border)'); });
+}
+
+// ── 승인 화면: 자동 산정 초안 표시·적용 ──
+function renderNmAutoHint(idx){
+  var box = document.getElementById('nm-auto-hint'); if (!box) return;
+  var r = nearmissReports[idx]; if (!r) { box.style.display='none'; return; }
+  var a = nmAutoAssess(r);
+  box.style.display = 'block';
+  box.innerHTML = '<div style="font-weight:800;margin-bottom:4px;color:#dc2626;">🤖 AI 산정 (기준서 표 적용) — 빈도 ' + a.frequency + ' × 강도 ' + a.severity + ' = ' + a.risk_score + '점 (' + a.grade + '등급 ' + a.risk_level + ')</div>' +
+    '<div>위험요소: ' + a.hazard_type + (a.hazard_factors.length ? ' / 고위험: ' + a.hazard_factors.join('·') : '') + '</div>' +
+    '<div>빈도 근거: ' + nmEsc(a.frequency_reason) + '</div><div>강도 근거: ' + nmEsc(a.severity_reason) + '</div>' +
+    (a.missing_info.length ? '<div style="color:#b45309;">빠진 정보: ' + a.missing_info.join(', ') + '</div>' : '') +
+    '<button type="button" onclick="applyNmAutoDraft(' + idx + ')" style="margin-top:8px;padding:6px 12px;border-radius:8px;border:1px solid #2563eb;background:#fff;color:#2563eb;font-weight:700;font-size:12px;cursor:pointer;">AI 값 적용 (적용 후 안전관리자가 수정 가능)</button>';
+}
+function applyNmAutoDraft(idx){
+  var r = nearmissReports[idx]; if (!r) return;
+  var a = nmAutoAssess(r);
+  selectFreqVal(a.frequency); selectSevVal(a.severity);
+  var t = document.getElementById('detail-input-type');
+  if (t && !t.value) { t.value = a.hazard_type; toggleDetailTypeOther(t.value); }
+}
+function onNmCloseToggle(){
+  var chk = document.getElementById('detail-no-close');
+  var box = document.getElementById('detail-no-assign-box');
+  if (box) box.style.display = (chk && chk.checked) ? 'none' : 'block';
 }
 
 // ── 아차사고 날짜 필터 ──
@@ -3678,7 +4027,7 @@ function applyNearmissFilter(){
   const filtered=nearmissReports.filter(r=>matchesDateFilter(r.submitDate,from,to));
   renderMyNearmissReportsData(filtered);
 }
-function resetNearmissFilter(){document.getElementById('nearmiss-filter-from').value='';document.getElementById('nearmiss-filter-to').value='';renderMyNearmissReportsData(nearmissReports);}
+function resetNearmissFilter(){document.getElementById('nearmiss-filter-from').value='';document.getElementById('nearmiss-filter-to').value='';nmStatusFilter='전체';renderMyNearmissReportsData(nearmissReports);}
 
 function parseFilterDate(dateStr){if(!dateStr)return null;const d=new Date(dateStr);d.setHours(0,0,0,0);return d;}
 function matchesDateFilter(submitDate,fromDate,toDate){if(!fromDate&&!toDate)return true;if(!submitDate)return false;const match=submitDate.match(/(\d{4})\.(\d{2})\.(\d{2})/);if(!match)return false;const d=new Date(parseInt(match[1]),parseInt(match[2])-1,parseInt(match[3]));if(fromDate&&d<fromDate)return false;if(toDate&&d>toDate)return false;return true;}
@@ -3702,7 +4051,7 @@ function openNearmissDetail(idx){
       <tr><th>유형</th><td>${r.type||'-'}</td></tr>
       <tr><th>내용</th><td>${r.content||'-'}</td></tr>
       <tr><th>불안전한<br>행동/상태</th><td>${r.unsafe||'-'}</td></tr>
-      <tr><th>위험성</th><td>${r.score?r.score+'점 '+getRiskLabel(r.score):'-'}</td></tr>
+      <tr><th>위험성</th><td>${r.score?r.score+'점 '+getRiskLabel(r.score,r.sevVal):'-'}</td></tr>
       ${r.docno?`<tr><th>위험성평가<br>문서번호</th><td>${r.docno}</td></tr>`:''}
       <tr><th>조치여부</th><td>${r.action==='yes'?'예':r.action==='no'?'아니오':'-'}</td></tr>
       ${r.actionDetail?`<tr><th>조치내용</th><td>${r.actionDetail}</td></tr>`:''}
@@ -3712,10 +4061,14 @@ function openNearmissDetail(idx){
 
   document.getElementById('nearmiss-detail-action').innerHTML=`
     <table class="detail-table"><tbody>
-      <tr><th>조치부서</th><td>${r.assignedDept||'-'}</td></tr>
+      <tr><th>진행상태</th><td>${nmStatusBadge(nmStatus(r))}</td></tr>
+      ${r.approvedAt?`<tr><th>승인일</th><td>${new Date(r.approvedAt).toLocaleDateString('ko-KR')}</td></tr>`:''}
+      <tr><th>조치부서</th><td>${r.assignedDept||'-'}${r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">(AI 예상)</span>':''}${r.assignReason?`<div style="font-size:11px;color:var(--text-muted);">${nmEsc(r.assignReason)}</div>`:''}</td></tr>
       <tr><th>조치 예정일</th><td>${r.originalDueDate||r.dueDate||'-'}</td></tr>
       ${r.dueChangeReason ? `<tr><th>조치 예정일<br>(변경)</th><td>${r.changedDueDate||'-'}</td></tr>` : ''}
       ${r.dueChangeReason ? `<tr><th>변경 사유</th><td>${r.dueChangeReason}</td></tr>` : ''}
+      <tr><th>조치방법</th><td>${r.actionPlan?nmEsc(r.actionPlan):'-'}</td></tr>
+      <tr><th>착수일</th><td>${r.startedAt?new Date(r.startedAt).toLocaleDateString('ko-KR'):'-'}</td></tr>
       <tr><th>조치일</th><td>${r.actionDate||'-'}</td></tr>
       <tr><th>조치결과</th><td>${r.actionResult||'-'}</td></tr>
       <tr><th>조치완료</th><td>${r.actionCompleted?'✅ 완료':'-'}</td></tr>
@@ -3741,6 +4094,8 @@ function openAssignModal(idx){
   document.getElementById('assign-report-idx').value=idx;
   document.getElementById('assign-docid').value=r.docId||'';
   document.getElementById('assign-dept-select').value=r.assignedDept||'';
+  const ac=document.getElementById('assign-current');
+  if(ac)ac.innerHTML='현재: <b>'+nmEsc(r.assignedDept||'-')+'</b>'+(r.assignedByAI?' <span style="color:#dc2626;font-weight:800;">(AI 예상)</span>':'')+(r.assignReason?'<br>'+nmEsc(r.assignReason):'');
   const due=document.getElementById('assign-due-date');
   if(due)due.value=r.dueDate||'';
   document.getElementById('assign-modal').classList.add('active');
@@ -3753,10 +4108,12 @@ function saveAssign(){
   const docId=document.getElementById('assign-docid').value;
   const dept=document.getElementById('assign-dept-select').value;
   if(!dept){showToast('⚠ 조치부서를 선택해 주세요','var(--red-border)');return;}
-  const isReassign=nearmissReports[idx]?.assignedDept;
-  const upd={assignedDept:dept,assignedBy:currentUserDept,assignedAt:Date.now(),status:'조치중',dueDate:'',actionDate:'',actionResult:'',actionCompleted:false,actionPhotos:[],actionUpdatedAt:null};
-  if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeAssignModal();renderMyNearmissReports();showToast(isReassign?'🔄 조치부서가 재지정되었습니다':'📌 조치부서가 지정되었습니다');return;}
-  window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeAssignModal();switchPageTab('nearmiss','history');showToast(isReassign?'🔄 조치부서가 재지정되었습니다':'📌 조치부서가 지정되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)'));
+  const cur=nearmissReports[idx]||{};
+  if(dept===cur.assignedDept){closeAssignModal();showToast('변경 사항이 없습니다');return;}
+  const isReassign=true;
+  const upd={assignedDept:dept,assignedByAI:false,assignReason:(currentUserDept||'관리감독자')+' 수정 (이전: '+(cur.assignedDept||'-')+(cur.assignedByAI?' AI':'')+')',assignedBy:currentUserDept,assignedAt:Date.now(),status:'진행예정',dueDate:'',originalDueDate:'',changedDueDate:'',dueChangeReason:'',actionPlan:'',startedAt:null,startedBy:''};
+  if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeAssignModal();renderMyNearmissReports();showToast('🔄 조치부서가 수정되었습니다');return;}
+  window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeAssignModal();switchPageTab('nearmiss','history');showToast('🔄 조치부서가 수정되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)'));
 }
 
 // ── 기한 입력 ──
@@ -3880,7 +4237,7 @@ function saveActionResult(){
   if(btn){btn.textContent='저장 중...';btn.disabled=true;}
   compressToBase64(actionUploadedPhotos.slice(), 800, 0.7).then(compressed=>{
     uploadPhotosToStorage(compressed, 'nearmiss_action').then(photoUrls=>{
-    const upd={actionDate,actionResult:result,actionCompleted:completed,actionPhotos:photoUrls,actionUpdatedAt:Date.now(),status:completed?'완료':'조치중'};
+    const upd={actionDate,actionResult:result,actionCompleted:completed,actionPhotos:photoUrls,actionUpdatedAt:Date.now(),status:completed?'조치완료':'진행중'};
     if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeActionResultModal();renderMyNearmissReports();showToast('✅ 조치결과가 저장되었습니다');return;}
     window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeActionResultModal();switchPageTab('nearmiss','history');showToast('✅ 조치결과가 저장되었습니다');}).catch(e=>{showToast('❌ 저장 실패: '+e.message,'var(--red-border)');}).finally(()=>{if(btn){btn.textContent='💾 저장';btn.disabled=false;}});
     });
@@ -3895,8 +4252,8 @@ function openNearmissDetailInputModal(idx){
   document.getElementById('detail-input-name').value=r.name||'';
   document.getElementById('detail-input-date').value=r.date||'';
   document.getElementById('detail-input-area').value=r.area||'';
-  const fixedTypes=['미끄러짐 / 넘어짐','낙하물 / 충돌','끼임 / 말림','전기 접촉','화학물질 접촉'];
-  const rt=r.type||'';
+  const fixedTypes=NM_HAZARD_TYPES.filter(t=>t!=='기타');
+  const rt=NM_TYPE_LEGACY[r.type]||r.type||'';
   if(rt && !fixedTypes.includes(rt)){
     document.getElementById('detail-input-type').value='기타(직접입력)';
     document.getElementById('detail-input-type-other').value=rt;
@@ -3923,6 +4280,11 @@ function openNearmissDetailInputModal(idx){
   document.getElementById('detail-action-no-content').value=r.actionDetail&&av==='no'?r.actionDetail:'';
   detailActionPhotos=(av==='yes'&&r.actionPhotos?r.actionPhotos:[]).map(p=>({src:p}));
   renderDetailActionPhotos();
+  const pd=nmPredictDept(r);
+  document.getElementById('detail-ai-dept').textContent=pd.dept||'-';
+  document.getElementById('detail-ai-dept-reason').textContent='근거: '+pd.reason;
+  document.getElementById('detail-no-close').checked=false;onNmCloseToggle();
+  renderNmAutoHint(idx);
   document.getElementById('nearmiss-detail-input-modal').classList.add('active');
   document.body.style.overflow='hidden';
 }
@@ -3938,7 +4300,7 @@ function updateDetailInputScore(){
   if(el)el.textContent=score||'—';
   if(score&&card&&badge){
     card.style.display='block';
-    const tmp=document.createElement('div');tmp.innerHTML=getRiskLabel(score);
+    const tmp=document.createElement('div');tmp.innerHTML=getRiskLabel(score,s);
     const span=tmp.querySelector('span');
     if(span){
       badge.textContent=span.textContent;badge.className=span.className;
@@ -3947,6 +4309,10 @@ function updateDetailInputScore(){
       const c=colorMap[span.className];if(c){badge.style.background=c.bg;badge.style.color=c.color;badge.style.border='1.5px solid '+c.border;}
     }
   }else if(card)card.style.display='none';
+  const g=nmGrade(score,s);
+  const ra=document.getElementById('detail-input-risk-action');if(ra)ra.textContent=g?('조치기준: '+g.action+(g.grade>=NM_REQUIRED_GRADE?' (개선조치 필수)':'')):'';
+  const cw=document.getElementById('detail-no-close-wrap');
+  if(cw){const canClose=!!g&&g.grade<NM_REQUIRED_GRADE;cw.style.display=canClose?'flex':'none';if(!canClose){const c=document.getElementById('detail-no-close');if(c&&c.checked){c.checked=false;onNmCloseToggle();}}}
   const dg=document.getElementById('detail-input-docno-group');if(dg)dg.style.display=(score>=7||s===5)?'block':'none';
 }
 
@@ -3984,25 +4350,32 @@ function saveNearmissDetailInput(){
   if(!action) missing.push('조치여부');
   if(!unsafeVals) missing.push('불안전한 행동/상태');
   if(action==='yes'&&!actionYesDate) missing.push('조치일');
+  const closeNoAction=action==='no'&&document.getElementById('detail-no-close').checked;
   if(missing.length > 0){
     showToast('⚠ 미입력: '+missing.join(', '), 'var(--red-border)');
     return;
   }
-  const base={name,date,area,type,freqVal:freq,sevVal:sev,score,unsafe:unsafeVals,action,actionDetail,extra,docno,detailInputAt:Date.now()};
+  const grd=nmGrade(score,sev);
+  if(closeNoAction&&grd&&grd.grade>=NM_REQUIRED_GRADE){showToast('⚠ '+NM_REQUIRED_GRADE+'등급 이상은 개선조치가 필수입니다','var(--red-border)');return;}
+  const approver=(window._adminUser&&window._adminUser.email)||currentUserDept||'';
+  const base={name,date,area,type,freqVal:freq,sevVal:sev,score,unsafe:unsafeVals,action,actionDetail,extra,docno,detailInputAt:Date.now(),approvedAt:Date.now(),approvedBy:approver};
   const btn=document.querySelector('#nearmiss-detail-input-modal .btn-submit');
   function finish(upd){
-    if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeNearmissDetailInputModal();renderMyNearmissReports();showToast('✅ 상세정보가 저장되었습니다');return;}
-    window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeNearmissDetailInputModal();switchPageTab('nearmiss','history');showToast('✅ 상세정보가 저장되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)')).finally(()=>{if(btn){btn.textContent='💾 저장';btn.disabled=false;}});
+    if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeNearmissDetailInputModal();renderMyNearmissReports();showToast('✅ 승인되었습니다');return;}
+    window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeNearmissDetailInputModal();switchPageTab('nearmiss','history');showToast('✅ 승인되었습니다');}).catch(e=>showToast('❌ 저장 실패: '+e.message,'var(--red-border)')).finally(()=>{if(btn){btn.textContent='✅ 승인';btn.disabled=false;}});
   }
   if(action==='yes'){
     if(btn){btn.textContent='저장 중...';btn.disabled=true;}
     compressToBase64(detailActionPhotos.slice(), 800, 0.7).then(compressed=>{
       uploadPhotosToStorage(compressed, 'nearmiss_action').then(photoUrls=>{
-        finish({...base, status:'완료', assignedDept:nearmissReports[idx]?(nearmissReports[idx].assignedDept||''):'', actionCompleted:true, actionDate:actionYesDate, actionResult:actionDetail, actionPhotos:photoUrls, actionUpdatedAt:Date.now()});
+        finish({...base, status:'조치완료', assignedDept:nearmissReports[idx]?(nearmissReports[idx].assignedDept||''):'', actionCompleted:true, actionDate:actionYesDate, actionResult:actionDetail, actionPhotos:photoUrls, actionUpdatedAt:Date.now()});
       });
     });
+  } else if(closeNoAction){
+    finish({...base, status:'조치완료', actionCompleted:true, actionDate:new Date(Date.now()+9*3600e3).toISOString().slice(0,10), actionResult:'개선조치 없이 종결 — '+(grd?grd.action:'교육·공유로 관리')+' (승인자 판단)', actionUpdatedAt:Date.now()});
   } else {
-    finish({...base, status:'상세입력완료'});
+    const pd=nmPredictDept(nearmissReports[idx]||{});
+    finish({...base, status:'진행예정', assignedDept:pd.dept, assignedByAI:true, assignReason:'AI: '+pd.reason, assignedBy:'AI', assignedAt:Date.now(), dueDate:'', originalDueDate:'', actionPlan:'', startedAt:null, actionCompleted:false});
   }
 }
 
@@ -4248,15 +4621,16 @@ async function exportNearmissExcel(){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('아차사고신고');
 
-  const headers = ['접수일','상태','소속구분','부서/업체명','작성자','발생일','장소','유형','신고내용','불안전요인','빈도','강도','위험성점수','조치필요여부','조치상세','조치부서','조치예정일','조치완료일','조치결과','조치완료여부','신고사진','조치사진'];
+  const headers = ['접수일','진행상태','소속구분','부서/업체명','작성자','발생일','장소','신고내용','위험요소(유형)','고위험 요인','불안전요인','빈도','빈도 근거','강도','강도 근거','위험성점수','위험성등급','필수조치(3등급↑)','조치기준','산정구분','AI 산정','빠진 정보','조치부서','조치부서 구분','조치예정일','조치방법','착수일','조치완료일','조치결과','신고사진','조치사진'];
   ws.addRow(headers);
   ws.getRow(1).font = { bold:true };
   ws.getRow(1).alignment = { vertical:'middle', horizontal:'center', wrapText:true };
   const PHOTO_COL_WIDTH = 52; // 사진 최대 5장이 들어가는 컬럼 너비
   ws.columns = headers.map(h=>({
     width: (h==='신고사진'||h==='조치사진') ? PHOTO_COL_WIDTH
-         : (h==='신고내용'||h==='조치상세'||h==='조치결과') ? 26
-         : 14
+         : (h==='신고내용'||h==='조치방법'||h==='조치결과') ? 30
+         : (h==='빈도 근거'||h==='강도 근거'||h==='조치기준'||h==='AI 산정'||h==='빠진 정보'||h==='조치부서 구분') ? 24
+         : 13
   }));
 
   const photoColIdx = headers.indexOf('신고사진'); // 0-based
@@ -4283,14 +4657,28 @@ async function exportNearmissExcel(){
     }
   }
 
+  const gradeFill = {5:'FFFFC7CE',4:'FFFFE0B2',3:'FFFFF2CC',2:'FFE2EFDA',1:'FFDDEBF7'};
   for (const r of nearmissReports){
+    const ra = assessNearmissRisk(r), f = ra.final, au = ra.auto;
     const row = ws.addRow([
-      r.submitDate||'', r.status||'', r.companyType||'', (r.companyName||r.dept||''),
-      r.name||'', r.date||'', r.area||'', r.type||'', r.content||'',
-      r.unsafe||'', r.freqVal||'', r.sevVal||'', r.score??'', r.action||'',
-      r.actionDetail||'', r.assignedDept||'', r.dueDate||'', r.actionDate||'',
-      r.actionResult||'', r.actionCompleted?'완료':'미완료', '', ''
+      r.submitDate||'', nmStatus(r), r.companyType||'', (r.companyName||r.dept||''),
+      r.name||'', r.date||'', r.area||'', r.content||'',
+      f.hazard_type, (f.hazard_factors||[]).join(', ') || '-', (r.unsafe&&r.unsafe!=='-')?r.unsafe:'',
+      f.frequency, f.frequency_reason, f.severity, f.severity_reason,
+      f.risk_score, f.grade+'등급 '+f.risk_level, f.grade>=NM_REQUIRED_GRADE?'Y':'N', f.action + (f.due?(' (기한: '+f.due+')'):''),
+      f.source, `빈도${au.frequency}×강도${au.severity}=${au.risk_score} (${au.grade}등급) / ${au.hazard_type}`,
+      (f.missing_info||[]).join(', '),
+      r.assignedDept||'', r.assignedDept?(r.assignedByAI?'AI 예상':(r.assignReason||'관리감독자 지정')):'', r.changedDueDate||r.dueDate||'', r.actionPlan||'',
+      r.startedAt?new Date(r.startedAt).toLocaleDateString('ko-KR'):'', r.actionDate||'', r.actionResult||'', '', ''
     ]);
+    const gc = row.getCell(headers.indexOf('위험성등급')+1);
+    gc.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: gradeFill[f.grade] } };
+    gc.font = { bold:true };
+    if (f.source === 'AI') {
+      ['산정구분','빈도','빈도 근거','강도','강도 근거','위험성점수','위험요소(유형)'].forEach(k => { const c = row.getCell(headers.indexOf(k)+1); c.font = { bold: k==='산정구분', color:{ argb:'FFC00000' } }; });
+      gc.font = { bold:true, color:{ argb:'FFC00000' } };
+    }
+    if (r.assignedByAI) row.getCell(headers.indexOf('조치부서 구분')+1).font = { color:{ argb:'FFC00000' } };
     row.height = 56;
     row.eachCell({ includeEmpty:true }, cell => {
       cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
@@ -4301,6 +4689,16 @@ async function exportNearmissExcel(){
     await embedPhotoSet(r.actionPhotos, actionPhotoColIdx, rowIdx0);
   }
 
+  const ws2 = wb.addWorksheet('위험성 산정기준');
+  ws2.columns = [{width:10},{width:16},{width:14},{width:52}];
+  ws2.addRow(['등급','수준','점수(빈도×강도)','조치']).font = { bold:true };
+  NM_GRADES.forEach(g => { const rr = ws2.addRow([g.grade+'등급', g.label, g.min+'~'+g.max, g.action]); rr.getCell(1).fill = { type:'pattern', pattern:'solid', fgColor:{ argb: gradeFill[g.grade] } }; });
+  ws2.addRow([]);
+  ['· '+NM_REQUIRED_GRADE+'등급 이상은 개선조치 필수, 그 이하는 승인자 판단으로 진행예정 또는 종결',
+   '· 강도 4 이상은 점수와 관계없이 최소 3등급',
+   '· 산정구분 "확정" = 안전관리자가 승인 시 입력한 빈도·강도 / "AI"(빨간 글씨) = 신고내용으로 기준서 표를 적용한 산정값 — 안전관리자가 승인 화면에서 수정·확정',
+   '· 조치부서 구분 "AI 예상" = 신고내용으로 예상해 미리 배정한 부서(관리감독자가 수정 가능)',
+   '· 근거: 아차사고 위험성 산정 기준(빈도×강도), 2026.11.11'].forEach(t => ws2.addRow([t]));
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type:'application/octet-stream' });
   const d = new Date();
