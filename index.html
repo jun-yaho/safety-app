@@ -2720,7 +2720,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       </div>
       <div id="assign-current" style="font-size:12px;color:var(--text-muted);margin:-4px 0 12px;line-height:1.6;"></div>
-      <div style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px;">부서를 바꾸면 입력된 예정일은 지워지고, 새로 배정된 팀의 관리감독자가 예정일을 입력합니다.</div>
+      <div style="font-size:12px;color:var(--text-muted);margin:-4px 0 14px;line-height:1.5;">우리 부서 업무가 아니면 맞는 부서를 골라 저장하세요. 바뀐 부서에서 예정일을 새로 입력합니다.</div>
       <button class="btn-submit btn-nearmiss" onclick="saveAssign()">💾 저장</button>
       <button class="btn-cancel-login" onclick="closeAssignModal()">취소</button>
     </div>
@@ -2745,7 +2745,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       </div>
       <div id="stop-assign-current" style="font-size:12px;color:var(--text-muted);margin:-4px 0 12px;line-height:1.6;"></div>
-      <div style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px;">담당부서의 관리감독자가 조치일·조치결과·작업재개 여부를 입력합니다.</div>
+      <div style="font-size:12px;color:var(--text-muted);margin:-4px 0 14px;line-height:1.5;">우리 부서 업무가 아니면 맞는 부서를 골라 저장하세요. 바뀐 부서에서 조치를 입력합니다.</div>
       <button class="btn-submit btn-nearmiss" onclick="saveStopAssign()">💾 저장</button>
       <button class="btn-cancel-login" onclick="closeStopAssignModal()">취소</button>
     </div>
@@ -3677,7 +3677,7 @@ function openStopAssignModal(idx){
   document.getElementById('stop-assign-idx').value=idx;
   document.getElementById('stop-assign-docid').value=r.docId||'';
   document.getElementById('stop-assign-select').value=sd.dept||'';
-  document.getElementById('stop-assign-current').innerHTML='현재: <b>'+nmEsc(sd.dept||'-')+'</b>'+(sd.src?' ('+(sd.src==='AI'?'<span style="color:#dc2626;font-weight:800;">AI 예상</span>':'<span style="color:#2563eb;font-weight:800;">신고자 지정</span>')+')':'')+(sd.reason&&sd.src!=='신고자'?'<br>'+nmEsc(sd.reason):'');
+  document.getElementById('stop-assign-current').innerHTML='현재 담당부서: <b style="color:var(--text);">'+nmEsc(sd.dept||'-')+'</b>'+(sd.src==='AI'?' <span style="color:#dc2626;font-weight:800;">(AI 추천)</span>':'');
   document.getElementById('stop-assign-modal').classList.add('active');
   document.body.style.overflow='hidden';
 }
@@ -4318,7 +4318,7 @@ function openAssignModal(idx){
   document.getElementById('assign-docid').value=r.docId||'';
   document.getElementById('assign-dept-select').value=r.assignedDept||'';
   const ac=document.getElementById('assign-current');
-  if(ac)ac.innerHTML='현재: <b>'+nmEsc(r.assignedDept||'-')+'</b>'+deptSrcTag(nmAssignSrc(r))+(r.requestedDept?'<br>신고자 지정: '+nmEsc(r.requestedDept):'')+(r.assignReason?'<br>'+nmEsc(r.assignReason):'');
+  if(ac)ac.innerHTML='현재 조치부서: <b style="color:var(--text);">'+nmEsc(r.assignedDept||'-')+'</b>'+(nmAssignSrc(r)==='AI'?' <span style="color:#dc2626;font-weight:800;">(AI 추천)</span>':'');
   const due=document.getElementById('assign-due-date');
   if(due)due.value=r.dueDate||'';
   document.getElementById('assign-modal').classList.add('active');
