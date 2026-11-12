@@ -56,6 +56,11 @@ window.SITE = {
   //  ※ 바꿔도 이전에 저장된 사진은 계속 보입니다.
   photoStore: 'firestore',
 
+  // ★ 조치 입력 권한 (예정일 입력·착수, 예정일 변경, 조치결과 입력·수정, 작업중지 조치입력)
+  //   'all'  = 모든 관리감독자 + 안전팀 (설명회·시범운영 기간)
+  //   'team' = 배정된 팀 관리감독자 + 안전팀 (정식 운영 시 이 값으로 바꾸세요)
+  actionPermission: 'all',
+
   // 아차사고 조치부서 AI 예상 — 신고내용에 아래 단어가 있으면 해당 부서를 미리 지정합니다.
   // (관리감독자가 틀린 경우 앱에서 수정 가능. 단어는 자유롭게 추가·삭제하세요. 위에 있는 부서가 동점일 때 우선)
   deptKeywords: {
@@ -3645,7 +3650,7 @@ function renderMyStopReportsData(data) {
   el.innerHTML=data.map(r=>{
     const idx=stopReports.indexOf(r);   // 필터와 관계없이 원본 목록 위치로 연결
     const sd=stopDept(r);
-    const isMyDept=isAdmin&&!!currentUserDept&&sd.dept===currentUserDept;
+    const isMyDept=canHandleDept(sd.dept);
     return `
     <div class="report-card report-card-clickable" onclick="openStopDetail(${idx})">
       <div class="report-card-header" style="flex-wrap:wrap;row-gap:6px;">
@@ -3735,7 +3740,7 @@ function openStopDetail(idx) {
       <tr><th>작업재개여부</th><td>${resumeLabel}</td></tr>
       <tr><th>조치 입력</th><td>${r.stopActionBy?nmEsc(r.stopActionBy):'-'}</td></tr>
     </tbody></table>
-    ${r.stopActionPhotos&&r.stopActionPhotos.length>0?`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">조치사진</div><div class="report-photos">${r.stopActionPhotos.map(p=>`<img src="${p}" class="report-photo-thumb" onclick="viewPhoto('${p}')">`).join('')}</div></div>`:''}`;
+    ${r.stopActionPhotos&&r.stopActionPhotos.length>0?`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">조치사진</div><div class="report-photos">${r.stopActionPhotos.map(p=>`<img src="${p}" class="report-photo-thumb" onclick="viewPhoto('${p}')">`).join('')}</div></div>`:''}${stopDetailActions(idx)}`;
 
   switchStopDetailTab('report');
   document.getElementById('stop-detail-modal').classList.add('active');
@@ -3758,7 +3763,7 @@ let stopActionPhotos=[];
 function openStopActionModal(idx) {
   const r=stopReports[idx]; if(!r) return;
   const sd=stopDept(r);
-  if(!currentUserDept||sd.dept!==currentUserDept){showToast('⚠ 담당부서('+(sd.dept||'-')+')의 관리감독자만 조치를 입력할 수 있습니다','var(--red-border)');return;}
+  if(!canHandleDept(sd.dept)){showToast('⚠ 담당부서('+(sd.dept||'-')+') 관리감독자 또는 안전팀만 조치를 입력할 수 있습니다','var(--red-border)');return;}
   document.getElementById('stop-action-docid').value=r.docId||'';
   const ai=document.getElementById('stop-action-info');
   if(ai) ai.innerHTML='<div><b style="color:var(--text-muted);">담당부서</b> '+nmEsc(sd.dept||'-')+deptSrcTag(sd.src)+'</div><div><b style="color:var(--text-muted);">신고내용</b> '+nmEsc(r.content||'-')+'</div><div><b style="color:var(--text-muted);">조치방법</b> '+nmEsc(r.actionMethod||'-')+'</div>';
@@ -3872,7 +3877,7 @@ function renderMyNearmissReportsData(data){
   el.innerHTML=data.map(r=>{
     const idx=nearmissReports.indexOf(r);   // 필터와 관계없이 원본 목록 위치로 연결
     const st=nmStatus(r);
-    const isMyDept=isAdmin&&!!currentUserDept&&!!r.assignedDept&&r.assignedDept===currentUserDept;  // 배정된 팀의 관리감독자
+    const isMyDept=canHandleDept(r.assignedDept);  // 배정된 팀 관리감독자 + 안전팀
     const btn=(style,fn,label)=>`<button class="assign-btn" style="${style}" onclick="event.stopPropagation();${fn}(${idx})">${label}</button>`;
     let btns='';
     if(isSafety&&st==='검토중'){
@@ -3885,6 +3890,7 @@ function renderMyNearmissReportsData(data){
       btns+=btn('border-color:#00a854;background:#f0fff7;color:#00a854;font-weight:800;','openActionResultModal','조치결과 입력');
       btns+=btn('border-color:#ea580c;background:#fff7ed;color:#ea580c;','openChangeDueModal','예정일 변경');
     }
+    if(isMyDept&&st==='조치완료')btns+=btn('border-color:#9ca3af;background:#f3f4f6;color:#6b7280;','openActionResultModal','조치결과 수정');
     if(isSafety)btns+=`<button class="report-del-btn" onclick="event.stopPropagation();deleteReport('nearmissReports','${r.docId}','nearmiss')">🗑</button>`;
     return `<div class="report-card report-card-clickable" onclick="openNearmissDetail(${idx})">
       <div class="report-card-header" style="flex-wrap:wrap;row-gap:6px;">
@@ -4202,7 +4208,7 @@ function saveNmPlan(start){
   if (!due) { showToast('⚠ 조치 예정일을 입력해 주세요','var(--red-border)'); return; }
   if (start && !method) { showToast('⚠ 조치방법을 입력해야 착수할 수 있습니다','var(--red-border)'); return; }
   var cur = nearmissReports[idx] || {};
-  if (!currentUserDept || cur.assignedDept !== currentUserDept) { showToast('⚠ 배정된 팀(' + (cur.assignedDept||'-') + ')의 관리감독자만 입력할 수 있습니다','var(--red-border)'); return; }
+  if (!canHandleDept(cur.assignedDept)) { showToast('⚠ 배정된 팀(' + (cur.assignedDept||'-') + ') 관리감독자 또는 안전팀만 입력할 수 있습니다','var(--red-border)'); return; }
   var upd = { dueDate: due, actionPlan: method, planUpdatedAt: Date.now(), planBy: currentUserDept || '' };
   if (!cur.originalDueDate) upd.originalDueDate = due;
   if (start) { upd.status = '진행중'; upd.startedAt = Date.now(); upd.startedBy = (window._adminUser && window._adminUser.email) || currentUserDept || ''; }
@@ -4296,7 +4302,7 @@ function openNearmissDetail(idx){
       <tr><th>조치결과</th><td>${r.actionResult||'-'}</td></tr>
       <tr><th>조치완료</th><td>${r.actionCompleted?'✅ 완료':'-'}</td></tr>
     </tbody></table>
-    ${r.actionPhotos&&r.actionPhotos.length>0?`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">조치사진</div><div class="report-photos">${r.actionPhotos.map(p=>`<img src="${p}" class="report-photo-thumb" onclick="viewPhoto('${p}')">`).join('')}</div></div>`:''}`;
+    ${r.actionPhotos&&r.actionPhotos.length>0?`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">조치사진</div><div class="report-photos">${r.actionPhotos.map(p=>`<img src="${p}" class="report-photo-thumb" onclick="viewPhoto('${p}')">`).join('')}</div></div>`:''}${nmDetailActions(idx)}`;
 
   const editBtn=document.getElementById('detail-edit-btn');
   if(editBtn)editBtn.style.display='none';
@@ -4309,6 +4315,33 @@ function openNearmissDetail(idx){
 }
 
 function switchDetailTab(tab){const isR=tab==='report';document.getElementById('detail-tab-report').classList.toggle('active',isR);document.getElementById('detail-tab-action').classList.toggle('active',!isR);document.getElementById('nearmiss-detail-content').style.display=isR?'block':'none';document.getElementById('nearmiss-detail-action').style.display=isR?'none':'block';}
+// 상세 창 '조치내용' 아래: 배정된 팀이면 바로 할 일 버튼, 아니면 누가 하는지 안내
+// 조치 처리 권한: 배정된 팀 관리감독자 + 안전팀(전체)
+function canHandleDept(dept){ return currentRole==='관리자' && ((window.SITE||{}).actionPermission==='all' || currentUserRole==='안전팀' || (!!currentUserDept && !!dept && dept===currentUserDept)); }
+function detailNote(html){ return '<div style="margin-top:14px;background:#eff6ff;border:1px solid rgba(37,99,235,0.25);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;color:var(--text);">'+html+'</div>'; }
+function detailBtn(onclick,label,color){ return '<button class="btn-submit" style="background:'+color+';margin-top:10px;" onclick="'+onclick+'">'+label+'</button>'; }
+function nmDetailActions(idx){
+  const r=nearmissReports[idx]; if(!r) return '';
+  const st=nmStatus(r); if(st==='검토중') return '';
+  const isAdmin=currentRole==='관리자';
+  const mine=canHandleDept(r.assignedDept);
+  if(st==='조치완료') return mine?detailBtn('closeNearmissDetail();openActionResultModal('+idx+')','✏️ 조치결과 수정','#6b7280'):'';
+  if(mine){
+    if(st==='진행예정') return detailBtn('closeNearmissDetail();openNmPlanModal('+idx+')', r.dueDate?'🛠 예정일·조치방법 / 착수':'🛠 예정일 입력·착수', '#2563eb');
+    return detailBtn('closeNearmissDetail();openActionResultModal('+idx+')','✅ 조치결과 입력','#00a854')+detailBtn('closeNearmissDetail();openChangeDueModal('+idx+')','📅 예정일 변경','#ea580c');
+  }
+  const what=st==='진행예정'?'예정일 입력·착수는':'조치결과 입력은';
+  return detailNote('ℹ️ '+what+' <b>'+nmEsc(r.assignedDept||'-')+' 관리감독자</b>와 <b>안전팀</b>이 합니다. 해당 계정으로 로그인하면 이 화면과 목록 카드에 버튼이 나타납니다.'+(isAdmin&&st==='진행예정'?'<br>부서가 틀렸으면 목록 카드의 [조치부서 수정]으로 바꿔 주세요.':''));
+}
+function stopDetailActions(idx){
+  const r=stopReports[idx]; if(!r) return '';
+  const sd=stopDept(r);
+  const isAdmin=currentRole==='관리자';
+  const mine=canHandleDept(sd.dept);
+  if(mine) return detailBtn('closeStopDetail();openStopActionModal('+idx+')', r.stopActionDate?'✏️ 조치수정':'🔧 조치입력', r.stopActionDate?'#6b7280':'var(--red)');
+  if(r.stopActionDate) return '';
+  return detailNote('ℹ️ 조치 입력은 <b>담당 '+nmEsc(sd.dept||'-')+' 관리감독자</b>와 <b>안전팀</b>이 합니다. 해당 계정으로 로그인하면 이 화면과 목록 카드에 [조치입력] 버튼이 나타납니다.'+(isAdmin?'<br>부서가 틀렸으면 목록 카드의 [담당부서 수정]으로 바꿔 주세요.':''));
+}
 function closeNearmissDetail(){document.getElementById('nearmiss-detail-modal').classList.remove('active');document.body.style.overflow='';}
 
 // ── 조치부서 지정 ──
@@ -4390,6 +4423,7 @@ let actionUploadedPhotos=[];
 
 function openChangeDueModal(idx) {
     const r = nearmissReports[idx]; if (!r) return;
+    if (!canHandleDept(r.assignedDept)) { showToast('⚠ 배정된 팀(' + (r.assignedDept||'-') + ') 관리감독자 또는 안전팀만 변경할 수 있습니다','var(--red-border)'); return; }
     document.getElementById('change-due-idx').value     = idx;
     document.getElementById('change-due-docid').value   = r.docId || '';
     document.getElementById('change-due-current').value = r.dueDate || '-';
@@ -4431,13 +4465,14 @@ function openChangeDueModal(idx) {
 
 function openActionResultModal(idx){
   const r=nearmissReports[idx];if(!r)return;
+  if(!canHandleDept(r.assignedDept)){showToast('⚠ 배정된 팀('+(r.assignedDept||'-')+') 관리감독자 또는 안전팀만 입력할 수 있습니다','var(--red-border)');return;}
   document.getElementById('action-result-report-idx').value=idx;
   document.getElementById('action-result-docid').value=r.docId||'';
   document.getElementById('action-result-due-display').value=r.dueDate||'-';
   document.getElementById('action-date-input').value=r.actionDate||'';
   document.getElementById('action-result-input').value=r.actionResult||'';
   document.getElementById('action-completed-check').checked=r.actionCompleted||false;
-  actionUploadedPhotos=[];renderActionPhotos();
+  actionUploadedPhotos=(r.actionPhotos||[]).map(p=>({src:p}));renderActionPhotos();   // 수정 시 기존 사진 유지
   document.getElementById('action-result-modal').classList.add('active');
   document.body.style.overflow='hidden';
 }
@@ -4460,7 +4495,7 @@ function saveActionResult(){
   if(btn){btn.textContent='저장 중...';btn.disabled=true;}
   compressToBase64(actionUploadedPhotos.slice(), 800, 0.7).then(compressed=>{
     uploadPhotosToStorage(compressed, 'nearmiss_action').then(photoUrls=>{
-    const upd={actionDate,actionResult:result,actionCompleted:completed,actionPhotos:photoUrls,actionUpdatedAt:Date.now(),status:completed?'조치완료':'진행중'};
+    const upd={actionDate,actionResult:result,actionCompleted:completed,actionPhotos:photoUrls,actionUpdatedAt:Date.now(),actionBy:currentUserDept||'',status:completed?'조치완료':'진행중'};
     if(!window.__db||!docId){if(nearmissReports[idx])Object.assign(nearmissReports[idx],upd);closeActionResultModal();renderMyNearmissReports();showToast('✅ 조치결과가 저장되었습니다');return;}
     window.__db.collection('nearmissReports').doc(docId).update(upd).then(()=>{closeActionResultModal();switchPageTab('nearmiss','history');showToast('✅ 조치결과가 저장되었습니다');}).catch(e=>{showToast('❌ 저장 실패: '+e.message,'var(--red-border)');}).finally(()=>{if(btn){btn.textContent='💾 저장';btn.disabled=false;}});
     });
