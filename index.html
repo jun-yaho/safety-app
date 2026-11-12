@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>안전보건 앱</title>
+<title>아차사고 신고&amp;관리시스템</title>
 <script>
 /* ════════════════════════════════════════════════════════════════
    ▣ 사업장 설정 — 이 블록만 고치면 됩니다 ▣
@@ -93,16 +93,19 @@ window.SITE = {
   :root {
     --bg: #ffffff;
     --surface: #ffffff;
-    --surface2: #f5f6fa;
-    --border: #e8eaf2;
-    --text: #1a1d2e;
-    --text-muted: #8a94b0;
+    --surface2: #f3f5f9;
+    --border: #e2e7ef;
+    --text: #14213d;
+    --text-muted: #7a869e;
     --red: #e8201a;
     --red-light: #fff3f3;
     --red-border: rgba(232,32,26,0.2);
-    --yellow: #e89500;
-    --yellow-light: #fffbf0;
-    --yellow-border: rgba(232,149,0,0.2);
+    --navy: #13294b;
+    --navy-2: #1f3f6e;
+    --navy-light: #eef2f8;
+    --yellow: #1f3f6e;
+    --yellow-light: #eef2f8;
+    --yellow-border: rgba(31,63,110,0.22);
     --green: #00a854;
     --green-light: #f0fff7;
     --green-border: rgba(0,168,84,0.2);
@@ -148,7 +151,7 @@ window.SITE = {
 
   /* ── HEADER ── */
   .app-header {
-    padding: 16px 20px 14px;
+    padding: 14px 20px 13px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -206,9 +209,9 @@ window.SITE = {
     white-space: nowrap;
   }
   .role-btn.active {
-    background: #2563eb;
+    background: var(--navy);
     color: #fff;
-    box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+    box-shadow: 0 2px 6px rgba(19,41,75,0.3);
   }
   .role-btn:not(.active):hover { color: var(--text); }
   .admin-pending-badge {
@@ -255,10 +258,10 @@ window.SITE = {
   .card-admin-stop:hover { border-color: #e8201a; box-shadow: 0 6px 24px rgba(232,32,26,0.14); }
 
   .card-admin-nearmiss {
-    background: linear-gradient(145deg, #fffbea, #fff0b8);
-    border-color: rgba(232,149,0,0.2);
+    background: linear-gradient(145deg, #f3f6fb, #e4eaf4);
+    border-color: rgba(31,63,110,0.2);
   }
-  .card-admin-nearmiss:hover { border-color: #e89500; box-shadow: 0 6px 24px rgba(232,149,0,0.14); }
+  .card-admin-nearmiss:hover { border-color: #1f3f6e; box-shadow: 0 6px 24px rgba(19,41,75,0.14); }
 
   /* ── HOME ── */
   .home-main {
@@ -296,35 +299,40 @@ window.SITE = {
   }
   .menu-card:active { transform: scale(0.975); }
 
-  /* stop - 빨간 배경 */
-  .card-stop { background: linear-gradient(145deg, #fff0f0, #ffe4e4); border-color: rgba(232,32,26,0.2); }
-  .card-stop:hover { border-color: var(--red); box-shadow: 0 6px 24px rgba(232,32,26,0.18); }
-  .card-stop .card-icon-box { background: #fff; color: var(--red); border: 1px solid rgba(232,32,26,0.2); box-shadow: 0 2px 8px rgba(232,32,26,0.12); }
-  .card-stop .card-num      { color: rgba(232,32,26,0.12); }
-  .card-stop .card-tag      { background: rgba(255,255,255,0.75); color: var(--red); border-color: rgba(232,32,26,0.25); }
-  .card-stop .card-arrow    { color: var(--red); }
-  .card-stop .card-title    { color: #c01a14; }
-  .card-stop .card-desc     { color: #a05050; }
+  /* ── 홈 카드 (남색 계열) ── */
+  #page-home { background: var(--surface2); }
+  .home-header { background: var(--navy); border-bottom: none; }
+  .home-header .role-toggle { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+  .home-header .role-btn { color: rgba(255,255,255,0.75); }
+  .home-header .role-btn.active { background: #fff; color: var(--navy); box-shadow: none; }
+  .home-header .admin-pending-badge { box-shadow: 0 0 0 2px var(--navy); }
+  .home-logo-chip { background:#fff; border-radius:8px; padding:5px 9px; display:flex; align-items:center; min-width:0; flex-shrink:1; }
+  .home-logo-chip img { height:20px; max-width:120px; object-fit:contain; display:block; }
+  .home-hero { background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; padding: 6px 20px 26px; }
+  .home-hero-eyebrow { font-size:10px; font-weight:700; letter-spacing:1.6px; color:rgba(255,255,255,0.55); margin-bottom:6px; }
+  .home-hero-title { font-size:24px !important; font-weight:900; letter-spacing:-0.6px; color:#fff !important; line-height:1.25; }
+  .home-hero-sub { font-size:12.5px; color:rgba(255,255,255,0.72); margin-top:6px; }
+  .home-main { margin-top: -12px; }
 
-  /* escape - 초록 배경 */
-  .card-escape { background: linear-gradient(145deg, #edfff5, #d4ffe8); border-color: rgba(0,168,84,0.2); }
-  .card-escape:hover { border-color: var(--green); box-shadow: 0 6px 24px rgba(0,168,84,0.18); }
-  .card-escape .card-icon-box { background: #fff; color: var(--green); border: 1px solid rgba(0,168,84,0.2); box-shadow: 0 2px 8px rgba(0,168,84,0.12); }
-  .card-escape .card-num      { color: rgba(0,168,84,0.12); }
-  .card-escape .card-tag      { background: rgba(255,255,255,0.75); color: var(--green); border-color: rgba(0,168,84,0.25); }
-  .card-escape .card-arrow    { color: var(--green); }
-  .card-escape .card-title    { color: #007a3d; }
-  .card-escape .card-desc     { color: #3a7a58; }
+  .card-primary { padding: 24px 20px 20px; }
+  .card-nearmiss { background: linear-gradient(145deg, #1f3f6e, #13294b); border-color: #13294b; box-shadow: 0 8px 24px rgba(19,41,75,0.28); }
+  .card-nearmiss:hover { box-shadow: 0 10px 28px rgba(19,41,75,0.36); }
+  .card-nearmiss .card-icon-box { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); }
+  .card-nearmiss .card-num      { color: rgba(255,255,255,0.10); }
+  .card-nearmiss .card-tag      { background: rgba(255,255,255,0.10); color: #dbe5f3; border-color: rgba(255,255,255,0.25); }
+  .card-nearmiss .card-arrow    { color: #fff; }
+  .card-nearmiss .card-title    { color: #fff; font-size: 23px; }
+  .card-nearmiss .card-desc     { color: rgba(255,255,255,0.78); }
 
-  /* nearmiss - 노란 배경 */
-  .card-nearmiss { background: linear-gradient(145deg, #fffbea, #fff0b8); border-color: rgba(232,149,0,0.2); }
-  .card-nearmiss:hover { border-color: var(--yellow); box-shadow: 0 6px 24px rgba(232,149,0,0.18); }
-  .card-nearmiss .card-icon-box { background: #fff; color: var(--yellow); border: 1px solid rgba(232,149,0,0.2); box-shadow: 0 2px 8px rgba(232,149,0,0.12); }
-  .card-nearmiss .card-num      { color: rgba(232,149,0,0.14); }
-  .card-nearmiss .card-tag      { background: rgba(255,255,255,0.75); color: var(--yellow); border-color: rgba(232,149,0,0.25); }
-  .card-nearmiss .card-arrow    { color: var(--yellow); }
-  .card-nearmiss .card-title    { color: #a06800; }
-  .card-nearmiss .card-desc     { color: #8a6a30; }
+  .card-stop, .card-escape { background: #fff; border-color: var(--border); flex-direction: row; align-items: center; gap: 14px; padding: 18px; }
+  .card-stop .card-top, .card-escape .card-top { flex-shrink: 0; }
+  .card-stop .card-num, .card-escape .card-num { display: none; }
+  .card-stop .card-icon-box { background: #fff1f1; border: 1px solid rgba(232,32,26,0.18); }
+  .card-escape .card-icon-box { background: #ecfbf3; border: 1px solid rgba(0,168,84,0.18); }
+  .card-stop .card-title, .card-escape .card-title { font-size: 17px; color: var(--navy); }
+  .card-stop:hover { border-color: rgba(232,32,26,0.4); }
+  .card-escape:hover { border-color: rgba(0,168,84,0.4); }
+  .card-stop::after, .card-escape::after { content:'›'; margin-left:auto; font-size:22px; color:var(--text-muted); }
 
   .card-top { display:flex; align-items:flex-start; justify-content:space-between; }
 
@@ -397,8 +405,8 @@ window.SITE = {
   }
   .page-tab:hover { color: var(--text); }
   .page-tab.active {
-    color: var(--red);
-    border-bottom: 2px solid var(--red);
+    color: var(--navy);
+    border-bottom: 2px solid var(--navy);
     background: #fff;
   }
   #nearmiss-tab-report.active, #nearmiss-tab-history.active {
@@ -491,7 +499,7 @@ window.SITE = {
     min-height: 110px;
     display: flex; flex-direction: column;
   }
-  .photo-upload-area:hover { background: #fff8dc; border-color: var(--yellow); }
+  .photo-upload-area:hover { background: #e4eaf4; border-color: var(--yellow); }
 
   .photo-placeholder {
     display: flex; flex-direction: column;
@@ -844,7 +852,7 @@ window.SITE = {
   .nm-loc-grid .form-hint, .nm-form-hint { font-size:11px; color:var(--text-muted); margin-top:4px; line-height:1.4; }
   @media (max-width:340px){ .nm-loc-grid { grid-template-columns:1fr; } }
   .nm-improve-group .toggle-btn { flex:1 1 auto; text-align:center; }
-  #nm-reporter-info { background:#fffbeb; border:1.5px solid rgba(232,149,0,0.35); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.6; margin-bottom:14px; }
+  #nm-reporter-info { background:#f3f6fb; border:1.5px solid rgba(31,63,110,0.25); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.6; margin-bottom:14px; }
   #nm-reporter-info b { display:inline-block; min-width:64px; color:var(--text-muted); font-weight:700; }
   .nm-status-tabs { display:flex; gap:6px; overflow-x:auto; padding:2px 0 10px; -webkit-overflow-scrolling:touch; }
   .nm-st-tab { flex:0 0 auto; border:1.5px solid var(--border); background:#fff; color:var(--text-muted); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
@@ -1248,9 +1256,9 @@ window.SITE = {
 
   .btn-nearmiss {
     background: var(--yellow); color: #fff;
-    box-shadow: 0 4px 16px rgba(232,149,0,0.25);
+    box-shadow: 0 4px 16px rgba(19,41,75,0.28);
   }
-  .btn-nearmiss:hover { box-shadow: 0 6px 20px rgba(232,149,0,0.35); }
+  .btn-nearmiss:hover { box-shadow: 0 6px 20px rgba(19,41,75,0.38); }
 
 
   /* ── ESCAPE SVG MAP ── */
@@ -1346,7 +1354,7 @@ window.SITE = {
     text-align:center; line-height:1.2;
   }
   .room.current { background:var(--green-light); border-color:var(--green); color:var(--green); animation:blink 1.2s infinite; }
-  .room.exit    { background:var(--yellow-light); border-color:var(--yellow); color:var(--yellow); }
+  .room.exit    { background:#fff8e6; border-color:#d98a00; color:#b36b00; }
   .room.path    { background:#f0f8ff; border-color:#d0e8f8; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
@@ -1425,42 +1433,43 @@ document.addEventListener('DOMContentLoaded', function(){
 ═══════════════════════ -->
 <div class="page active" id="page-home">
 
-  <div class="app-header">
-    <img id="site-logo" src="" alt="로고"  style="height:24px;max-width:130px;object-fit:contain;flex-shrink:1;min-width:0;">
-    <div>
-      <div class="header-title" style="white-space:nowrap;">안전보건 앱</div>
-    </div>
+  <div class="app-header home-header">
+    <div class="home-logo-chip"><img id="site-logo" src="" alt="로고"></div>
     <div class="role-toggle" id="role-toggle">
       <div class="role-btn active" onclick="selectWorker(this)">근로자</div>
       <div class="role-btn" id="role-admin-btn" onclick="handleAdminBtnClick()">관리자<span class="admin-pending-badge" id="admin-pending-badge"></span></div>
     </div>
   </div>
 
+  <div class="home-hero">
+    <div class="home-hero-eyebrow">NEAR-MISS REPORTING &amp; MANAGEMENT</div>
+    <div class="header-title home-hero-title">아차사고 신고&amp;관리시스템</div>
+    <div class="home-hero-sub">작은 아차 한 번이 큰 사고를 막습니다</div>
+  </div>
+
   <div class="home-main">
-    
+
+    <div class="menu-card card-nearmiss card-primary" onclick="goPage('page-nearmiss', event)">
+      <div class="card-top">
+        <div class="card-icon-box">⛑️</div>
+        <div class="card-num">01</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">아차사고 신고 · 관리</div>
+        <div class="card-desc">다칠 뻔한 순간을 신고하고, 검토·조치 진행상황을 확인하세요</div>
+      </div>
+      <div class="card-footer"><span class="card-tag">신고 · 신고현황 · 조치관리</span><span class="card-arrow">→</span></div>
+    </div>
 
     <div class="menu-card card-stop" onclick="goPage('page-stop', event)">
       <div class="card-top">
         <div class="card-icon-box">🚫</div>
-        <div class="card-num">01</div>
+        <div class="card-num">02</div>
       </div>
       <div class="card-body">
         <div class="card-title">작업중지 신고</div>
         <div class="card-desc">위험 작업 즉시 중지 후 신고하세요</div>
       </div>
-
-    </div>
-
-    <div class="menu-card card-nearmiss" onclick="goPage('page-nearmiss', event)">
-      <div class="card-top">
-        <div class="card-icon-box">⛑️</div>
-        <div class="card-num">02</div>
-      </div>
-      <div class="card-body">
-        <div class="card-title">아차사고 신고</div>
-        <div class="card-desc">부상 없이 끝난 아찔한 순간을 기록하세요</div>
-      </div>
-
     </div>
 
     <div class="menu-card card-escape" onclick="goPage('page-escape', event)">
@@ -1472,7 +1481,6 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="card-title">비상대피로</div>
         <div class="card-desc">비상구 위치 및 집결지를 확인하세요</div>
       </div>
-
     </div>
 
   </div>
@@ -1793,7 +1801,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <input type="password" class="form-input" id="login-pw" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter')tryLogin()">
       </div>
       <div class="login-error" id="login-error"></div>
-      <button class="btn-submit btn-stop" onclick="tryLogin()" style="margin-top:8px;">로그인</button>
+      <button class="btn-submit btn-nearmiss" onclick="tryLogin()" style="margin-top:8px;">로그인</button>
       <button class="btn-cancel-login" onclick="closeLoginModal()">취소</button>
       <div style="text-align:center;padding-top:14px;">
         <span id="admin-request-link" style="font-size:12px;color:var(--text-muted);text-decoration:underline;cursor:pointer;" onclick="closeLoginModal();openAdminRequestModal()">계정이 없으신가요? 관리자 계정 신청</span>
@@ -2036,7 +2044,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <input type="password" class="form-input" id="req-pw2" placeholder="비밀번호를 한번 더 입력하세요">
       </div>
       <div class="login-error" id="req-error"></div>
-      <button class="btn-submit btn-stop" onclick="submitAdminRequest()" style="margin-top:8px;">신청하기</button>
+      <button class="btn-submit btn-nearmiss" onclick="submitAdminRequest()" style="margin-top:8px;">신청하기</button>
       <button class="btn-cancel-login" onclick="closeAdminRequestModal()">취소</button>
     </div>
   </div>
@@ -2581,11 +2589,11 @@ document.addEventListener('DOMContentLoaded', function(){
         <label class="form-label">조치 하였다면 어떻게?</label>
         <textarea class="form-textarea" id="detail-action-yes-content" style="height:80px;" placeholder="조치 내용을 입력해 주세요..."></textarea>
         <label class="form-label" style="margin-top:10px;">조치사진 <span style="color:var(--text-muted);font-weight:400;">(선택)</span></label>
-        <div class="photo-upload-area" style="border-color:#e89500;background:#fff8f0;" onclick="document.getElementById('detail-action-photo-input').click()">
+        <div class="photo-upload-area" style="border-color:#1f3f6e;background:#eef2f8;" onclick="document.getElementById('detail-action-photo-input').click()">
           <input type="file" id="detail-action-photo-input" accept="image/*" multiple style="display:none" onchange="handleDetailActionPhotos(this)">
           <div class="photo-placeholder" id="detail-action-photo-placeholder">
             <div class="photo-placeholder-icon">📷</div>
-            <div class="photo-placeholder-text" style="color:#e89500;">사진을 추가하려면 탭하세요</div>
+            <div class="photo-placeholder-text" style="color:#1f3f6e;">사진을 추가하려면 탭하세요</div>
             <div class="photo-placeholder-sub">최대 5장</div>
           </div>
           <div class="photo-preview-grid" id="detail-action-photo-grid"></div>
@@ -2658,11 +2666,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
       <div class="form-group">
         <label class="form-label">첨부사진</label>
-        <div class="photo-upload-area" style="border-color:#e89500;background:#fff8f0;" onclick="event.stopPropagation();document.getElementById('basic-edit-photo-input').click()">
+        <div class="photo-upload-area" style="border-color:#1f3f6e;background:#eef2f8;" onclick="event.stopPropagation();document.getElementById('basic-edit-photo-input').click()">
           <input type="file" id="basic-edit-photo-input" accept="image/*" multiple style="display:none" onchange="handleBasicEditPhotos(this)">
           <div class="photo-placeholder" id="basic-edit-photo-placeholder">
             <div class="photo-placeholder-icon">📷</div>
-            <div class="photo-placeholder-text" style="color:#e89500;">사진 변경</div>
+            <div class="photo-placeholder-text" style="color:#1f3f6e;">사진 변경</div>
             <div class="photo-placeholder-sub">최대 5장</div>
           </div>
           <div class="photo-preview-grid" id="basic-edit-photo-grid"></div>
