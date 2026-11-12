@@ -3902,10 +3902,10 @@ function renderMyNearmissReportsData(data){
       <div class="report-row"><span class="report-key">내용</span><span class="report-val">${r.content||'-'}</span></div>
       <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         ${nmStatusBadge(st)}
-        ${r.improveStatus&&st==='검토중'?`<span class="assign-badge" style="background:${r.improveStatus==='도움필요'?'#fff0f0':'#fff'};color:${r.improveStatus==='도움필요'?'var(--red)':'var(--text-muted)'};border:1.5px solid ${r.improveStatus==='도움필요'?'rgba(232,32,26,0.35)':'var(--border)'};font-weight:700;">신고자: ${r.improveStatus==='도움필요'?'도움필요 (현장 검토)':r.improveStatus}</span>`:''}
+        ${r.improveStatus&&st==='검토중'?`<span class="assign-badge" style="background:${r.improveStatus==='도움필요'?'#fff0f0':'#fff'};color:${r.improveStatus==='도움필요'?'var(--red)':'var(--text-muted)'};border:1.5px solid ${r.improveStatus==='도움필요'?'rgba(232,32,26,0.35)':'var(--border)'};font-weight:700;">${r.improveStatus==='도움필요'?'도움필요 (현장 검토)':r.improveStatus}</span>`:''}
         ${nmGradeBadge(r)}
-        ${r.assignedDept&&st!=='검토중'?`<span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">${r.assignedDept}${deptSrcTag(nmAssignSrc(r))}</span>`:''}
-        ${st==='검토중'&&r.requestedDept?`<span class="assign-badge" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);">조치부서(신고) ${nmEsc(r.requestedDept)}</span>`:''}
+        ${r.assignedDept&&st!=='검토중'?`<span class="assign-badge" style="background:#fff;color:var(--text);border:1.5px solid var(--border);">조치부서 ${r.assignedDept}${deptSrcTag(nmAssignSrc(r))}</span>`:''}
+        ${st==='검토중'&&r.requestedDept?`<span class="assign-badge" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);">조치부서 ${nmEsc(r.requestedDept)}</span>`:''}
         ${st==='진행예정'&&!r.dueDate?`<span class="assign-badge" style="background:#fff7ed;color:#ea580c;border:1.5px solid rgba(234,88,12,0.35);">예정일 미입력</span>`:''}
         ${r.dueDate&&(st==='진행예정'||st==='진행중')?`<span class="assign-badge" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);">예정 ${r.changedDueDate||r.dueDate}</span>`:''}
       </div>
@@ -4095,9 +4095,28 @@ function nmDeptSuggest(r){
   if (r && r.requestedDept) return { dept: r.requestedDept, src: '신고자', reason: '신고자 지정' };
   var p = nmPredictDept(r || {}); return { dept: p.dept, src: 'AI', reason: 'AI: ' + p.reason };
 }
+// 접수일(YYYY-MM-DD): 발생일자 기본값
+function nmSubmitDay(r){
+  var m = String(r.submitDate||'').match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  if (m) return m[1] + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[3]).slice(-2);
+  if (r.timestamp) return new Date(r.timestamp + 9*3600e3).toISOString().slice(0,10);
+  return '';
+}
+// 신고자가 적은 '아차사고 유형' → 위험요소 유형 (목록에 없으면 적은 그대로 '기타'에 입력)
+var NM_TYPE_WORDS = [
+  ['끼임', ['끼임','끼일','말림','말려','협착']], ['넘어짐', ['넘어짐','넘어질','미끄러','걸림','걸려','전도']],
+  ['추락', ['추락','떨어질','실족']], ['낙하', ['낙하','떨어짐','떨어졌','물체 떨어']], ['부딪힘', ['부딪','충돌','충격']],
+  ['화상', ['화상','고온','데임']], ['감전', ['감전','전기']], ['누출', ['누출','누설','비산','화학','약품']],
+  ['질식', ['질식','밀폐','산소결핍']], ['화재폭발', ['화재','폭발']]
+];
+function nmTypeFromReport(t){
+  t = String(t||'').trim(); if (!t) return '';
+  if (NM_HAZARD_TYPES.indexOf(t) >= 0) return t;
+  for (var i = 0; i < NM_TYPE_WORDS.length; i++) if (NM_TYPE_WORDS[i][1].some(function(w){ return t.indexOf(w) >= 0; })) return NM_TYPE_WORDS[i][0];
+  return t;
+}
 function deptSrcTag(src){
   if (src === 'AI') return ' <span style="color:#dc2626;font-weight:800;">AI</span>';
-  if (src === '신고자') return ' <span style="color:#2563eb;font-weight:800;">신고자</span>';
   return '';
 }
 function nmAssignSrc(r){ return r.assignSource || (r.assignedByAI ? 'AI' : ''); }
@@ -4454,10 +4473,10 @@ function openNearmissDetailInputModal(idx){
   document.getElementById('detail-input-idx').value=idx;
   document.getElementById('detail-input-docid').value=r.docId||'';
   document.getElementById('detail-input-name').value=r.name||'';
-  document.getElementById('detail-input-date').value=r.date||'';
+  document.getElementById('detail-input-date').value=r.date||nmSubmitDay(r);
   document.getElementById('detail-input-area').value=r.area||'';
   const fixedTypes=NM_HAZARD_TYPES.filter(t=>t!=='기타');
-  const rt=NM_TYPE_LEGACY[r.type]||r.type||'';
+  const rt=NM_TYPE_LEGACY[r.type]||r.type||nmTypeFromReport(r.reportType);
   if(rt && !fixedTypes.includes(rt)){
     document.getElementById('detail-input-type').value='기타(직접입력)';
     document.getElementById('detail-input-type-other').value=rt;
