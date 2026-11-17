@@ -1714,8 +1714,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
     <div class="form-group">
       <label class="form-label">아차사고 유형 <span style="color:var(--red)">*</span></label>
-      <input type="text" class="form-input" id="nearmiss-report-type" placeholder="넘어짐, 끼임, 화재, 화학사고 등">
-      <div class="nm-form-hint">예) A 이유로 넘어질 뻔함, B 이유로 옷이 말려들어갈 뻔함</div>
+      <select class="form-input form-select" id="nearmiss-report-type" onchange="nmReportTypeChange()">
+        <option value="">유형을 선택하세요</option>
+        <option value="추락">추락 (높은 곳에서 떨어질 뻔함)</option>
+        <option value="넘어짐">넘어짐 (미끄러짐·걸려 넘어질 뻔함)</option>
+        <option value="끼임">끼임 (말림·협착될 뻔함)</option>
+        <option value="부딪힘">부딪힘 (충돌할 뻔함)</option>
+        <option value="낙하">낙하 (물건이 떨어질 뻔함)</option>
+        <option value="화상">화상 (고온·스팀에 데일 뻔함)</option>
+        <option value="감전">감전 (전기에 감전될 뻔함)</option>
+        <option value="누출">누출 (가스·약품·오일 누출·비산)</option>
+        <option value="질식">질식 (밀폐공간·산소결핍)</option>
+        <option value="화재폭발">화재·폭발</option>
+        <option value="기타(직접입력)">기타 (직접 입력)</option>
+      </select>
+      <input type="text" class="form-input" id="nearmiss-report-type-etc" placeholder="유형을 직접 입력하세요" style="display:none;margin-top:8px;">
+      <div class="nm-form-hint">목록에 없으면 '기타 (직접 입력)'을 골라 적어 주세요</div>
     </div>
 
     <div class="form-group">
@@ -3455,7 +3469,8 @@ function submitNearmiss() {
   const content       = document.getElementById('nearmiss-content').value.trim();
   const loc           = document.getElementById('nearmiss-loc').value.trim();
   const locDetail     = document.getElementById('nearmiss-loc-detail').value.trim();
-  const reportType    = document.getElementById('nearmiss-report-type').value.trim();
+  const typeSel       = document.getElementById('nearmiss-report-type').value;
+  const reportType    = typeSel==='기타(직접입력)' ? (document.getElementById('nearmiss-report-type-etc').value.trim()||'기타') : typeSel;
   const improvement   = document.getElementById('nearmiss-improvement').value.trim();
   const improveEl     = document.querySelector('#nearmiss-improve-status .toggle-btn.active');
   const improveStatus = improveEl ? improveEl.dataset.value : '';
@@ -3514,7 +3529,7 @@ function submitNearmiss() {
       }
       document.getElementById('nearmiss-content').value='';
       document.getElementById('nearmiss-name').value='';
-      ['nearmiss-loc','nearmiss-loc-detail','nearmiss-report-type','nearmiss-improvement','nearmiss-request-dept'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      ['nearmiss-loc','nearmiss-loc-detail','nearmiss-report-type','nearmiss-report-type-etc','nearmiss-improvement','nearmiss-request-dept'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});nmReportTypeChange();
       document.querySelectorAll('#nearmiss-improve-status .toggle-btn').forEach(b=>b.classList.remove('active'));
       uploadedPhotos=[]; renderPhotos();
       document.querySelectorAll('#nearmiss-company-type .toggle-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
@@ -4123,6 +4138,11 @@ var NM_TYPE_WORDS = [
   ['화상', ['화상','고온','데임']], ['감전', ['감전','전기']], ['누출', ['누출','누설','비산','화학','약품']],
   ['질식', ['질식','밀폐','산소결핍']], ['화재폭발', ['화재','폭발']]
 ];
+function nmReportTypeChange(){
+  var etc=document.getElementById('nearmiss-report-type-etc'); if(!etc) return;
+  var on=document.getElementById('nearmiss-report-type').value==='기타(직접입력)';
+  etc.style.display=on?'block':'none'; if(on) etc.focus(); else etc.value='';
+}
 function nmTypeFromReport(t){
   t = String(t||'').trim(); if (!t) return '';
   if (NM_HAZARD_TYPES.indexOf(t) >= 0) return t;
